@@ -47,8 +47,8 @@ int main( int argc, char *argv[] ) {
     exit(0);
   }
 
-  octomap::OcTree *tree = NULL;
-  tree = new octomap::OcTree(0.05);
+  octomap::OcTree<> *tree = NULL;
+  tree = new octomap::OcTree<>(0.05);
 
   //read in octotree
   tree->readBinary(argv[1]);

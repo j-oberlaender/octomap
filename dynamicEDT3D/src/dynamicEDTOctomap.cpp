@@ -40,7 +40,7 @@
 float DynamicEDTOctomap::distanceValue_Error = -1.0;
 int DynamicEDTOctomap::distanceInCellsValue_Error = -1;
 
-DynamicEDTOctomap::DynamicEDTOctomap(float maxdist, octomap::OcTree* _octree, octomap::point3d bbxMin, octomap::point3d bbxMax, bool treatUnknownAsOccupied)
+DynamicEDTOctomap::DynamicEDTOctomap(float maxdist, octomap::OcTree<>* _octree, octomap::point3d bbxMin, octomap::point3d bbxMax, bool treatUnknownAsOccupied)
 : DynamicEDT3D(((int) (maxdist/_octree->getResolution()+1)*((int) (maxdist/_octree->getResolution()+1)))), octree(_octree), unknownOccupied(treatUnknownAsOccupied)
 {
 	treeDepth = octree->getTreeDepth();
@@ -67,7 +67,7 @@ void DynamicEDTOctomap::update(bool updateRealDist){
 		if(key[0] > boundingBoxMaxKey[0] || key[1] > boundingBoxMaxKey[1] || key[2] > boundingBoxMaxKey[2])
 			continue;
 
-		octomap::OcTreeNode* node = octree->search(key);
+		octomap::OcTreeNode<>* node = octree->search(key);
 		assert(node);
 		//"node" is not necessarily at lowest level, BUT: the occupancy value of this node
 		//has to be the same as of the node indexed by the key *it
@@ -96,7 +96,7 @@ void DynamicEDTOctomap::initializeOcTree(octomap::point3d bbxMin, octomap::point
 
 
 	if(unknownOccupied == false){
-		for(octomap::OcTree::leaf_bbx_iterator it = octree->begin_leafs_bbx(bbxMin,bbxMax), end=octree->end_leafs_bbx(); it!= end; ++it){
+		for(octomap::OcTree<>::leaf_bbx_iterator it = octree->begin_leafs_bbx(bbxMin,bbxMax), end=octree->end_leafs_bbx(); it!= end; ++it){
 			if(octree->isNodeOccupied(*it)){
 				int nodeDepth = it.getDepth();
 				if( nodeDepth == treeDepth){
@@ -130,7 +130,7 @@ void DynamicEDTOctomap::initializeOcTree(octomap::point3d bbxMin, octomap::point
 				for(int dz=0; dz<sizeZ; dz++){
 					key[2] = boundingBoxMinKey[2] + dz;
 
-					octomap::OcTreeNode* node = octree->search(key);
+					octomap::OcTreeNode<>* node = octree->search(key);
 					if(!node || octree->isNodeOccupied(node)){
 						insertMaxDepthLeafAtInitialize(key);
 					}
@@ -149,7 +149,7 @@ void DynamicEDTOctomap::insertMaxDepthLeafAtInitialize(octomap::OcTreeKey key){
 			for(int dz=-1; dz<=1; dz++){
 				if(dx==0 && dy==0 && dz==0)
 					continue;
-				octomap::OcTreeNode* node = octree->search(octomap::OcTreeKey(key[0]+dx, key[1]+dy, key[2]+dz));
+				octomap::OcTreeNode<>* node = octree->search(octomap::OcTreeKey(key[0]+dx, key[1]+dy, key[2]+dz));
 				if((!unknownOccupied && node==NULL) || ((node!=NULL) && (octree->isNodeOccupied(node)==false))){
 					isSurrounded = false;
 					break;
@@ -301,7 +301,7 @@ bool DynamicEDTOctomap::checkConsistency() const {
 
 				octomap::point3d point;
 				mapToWorld(x,y,z,point);
-				octomap::OcTreeNode* node = octree->search(point);
+				octomap::OcTreeNode<>* node = octree->search(point);
 
 				bool mapOccupied = isOccupied(x,y,z);
 				bool treeOccupied = false;

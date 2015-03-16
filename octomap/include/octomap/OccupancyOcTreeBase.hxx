@@ -272,6 +272,8 @@ namespace octomap {
       this->root = new NODE();
       this->tree_size++;
       createdRoot = true;
+    } else {
+      this->makeRootUnique();
     }
 
     return setNodeValueRecurs(this->root, createdRoot, key, 0, log_odds_value, lazy_eval);
@@ -314,6 +316,8 @@ namespace octomap {
       this->root = new NODE();
       this->tree_size++;
       createdRoot = true;
+    } else {
+      this->makeRootUnique();
     }
 
     return updateNodeRecurs(this->root, createdRoot, key, 0, log_odds_update, lazy_eval);
@@ -369,6 +373,7 @@ namespace octomap {
     bool created_node = false;
 
     assert(node);
+    assert(node->unique());
 
     // follow down to last level
     if (depth < this->tree_depth) {
@@ -390,6 +395,7 @@ namespace octomap {
         }
       }
 
+      node->makeUnique(pos);
       if (lazy_eval)
         return updateNodeRecurs(node->getChild(pos), created_node, key, depth+1, log_odds_update, lazy_eval);
       else {
@@ -438,6 +444,7 @@ namespace octomap {
     bool created_node = false;
 
     assert(node);
+    assert(node->unique());
 
     // follow down to last level
     if (depth < this->tree_depth) {
@@ -459,6 +466,7 @@ namespace octomap {
         }
       }
 
+      node->makeUnique(pos);
       if (lazy_eval)
         return setNodeValueRecurs(node->getChild(pos), created_node, key, depth+1, log_odds_value, lazy_eval);
       else {
@@ -501,13 +509,16 @@ namespace octomap {
 
   template <class NODE>
   void OccupancyOcTreeBase<NODE>::updateInnerOccupancy(){
-    if (this->root)
+    if (this->root) {
+      this->makeRootUnique();
       this->updateInnerOccupancyRecurs(this->root, 0);
+    }
   }
 
   template <class NODE>
   void OccupancyOcTreeBase<NODE>::updateInnerOccupancyRecurs(NODE* node, unsigned int depth){
     assert(node);
+    assert(node->unique());
 
     // only recurse and update for inner nodes:
     if (node->hasChildren()){
@@ -515,6 +526,7 @@ namespace octomap {
       if (depth < this->tree_depth){
         for (unsigned int i=0; i<8; i++) {
           if (node->childExists(i)) {
+            node->makeUnique(i);
             updateInnerOccupancyRecurs(node->getChild(i), depth+1);
           }
         }
@@ -527,6 +539,7 @@ namespace octomap {
   void OccupancyOcTreeBase<NODE>::toMaxLikelihood() {
     if (this->root == NULL)
       return;
+    this->makeRootUnique();
 
     // convert bottom up
     for (unsigned int depth=this->tree_depth; depth>0; depth--) {
@@ -542,10 +555,12 @@ namespace octomap {
       unsigned int max_depth) {
 
     assert(node);
+    assert(node->unique());
 
     if (depth < max_depth) {
       for (unsigned int i=0; i<8; i++) {
         if (node->childExists(i)) {
+          node->makeUnique(i);
           toMaxLikelihoodRecurs(node->getChild(i), depth+1, max_depth);
         }
       }
@@ -572,7 +587,7 @@ namespace octomap {
     int vertex_values[8];
 
     OcTreeKey current_key;
-    NODE* current_node;
+    const NODE* current_node;
 
     // There is 8 neighbouring sets
     // The current cube can be at any of the 8 vertex
@@ -646,7 +661,7 @@ namespace octomap {
   
   template <class NODE>
   bool OccupancyOcTreeBase<NODE>::castRay(const point3d& origin, const point3d& directionP, point3d& end, 
-                                          bool ignoreUnknown, double maxRange) const {
+                                          bool ignoreUnknown, double maxRange) {
 
     /// ----------  see OcTreeBase::computeRayKeys  -----------
 
@@ -1098,6 +1113,7 @@ namespace octomap {
 
   template <class NODE>
   void OccupancyOcTreeBase<NODE>::updateNodeLogOdds(NODE* occupancyNode, const float& update) const {
+    assert (occupancyNode->unique());
     occupancyNode->addValue(update);
     if (occupancyNode->getLogOdds() < this->clamping_thres_min) {
       occupancyNode->setLogOdds(this->clamping_thres_min);
@@ -1120,6 +1136,7 @@ namespace octomap {
   
   template <class NODE>
   void OccupancyOcTreeBase<NODE>::nodeToMaxLikelihood(NODE* occupancyNode) const{
+    assert (occupancyNode->unique());
     if (this->isNodeOccupied(occupancyNode))
       occupancyNode->setLogOdds(this->clamping_thres_max);
     else
@@ -1128,6 +1145,7 @@ namespace octomap {
 
   template <class NODE>
   void OccupancyOcTreeBase<NODE>::nodeToMaxLikelihood(NODE& occupancyNode) const{
+    assert (occupancyNode.unique());
     if (this->isNodeOccupied(occupancyNode))
       occupancyNode.setLogOdds(this->clamping_thres_max);
     else

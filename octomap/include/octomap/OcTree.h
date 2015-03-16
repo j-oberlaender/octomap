@@ -46,11 +46,12 @@ namespace octomap {
    * Basic functionality is implemented in OcTreeBase.
    *
    */
-  class OcTree : public OccupancyOcTreeBase <OcTreeNode> {
+  template <bool COPY_ON_WRITE=false>
+  class OcTree : public OccupancyOcTreeBase <OcTreeNode<COPY_ON_WRITE> > {
 
   public:
     /// Default constructor, sets resolution of leafs
-    OcTree(double resolution) : OccupancyOcTreeBase<OcTreeNode>(resolution) {};
+    OcTree(double resolution) : OccupancyOcTreeBase<OcTreeNode<COPY_ON_WRITE> >(resolution) {};
 
     /**
      * Reads an OcTree from a binary file 
@@ -63,27 +64,36 @@ namespace octomap {
 
     /// virtual constructor: creates a new object of same type
     /// (Covariant return type requires an up-to-date compiler)
-    OcTree* create() const {return new OcTree(resolution); }
+    OcTree* create() const {return new OcTree<COPY_ON_WRITE>(this->resolution); }
 
     std::string getTreeType() const {return "OcTree";}
-
-
-  protected:
-    /**
-     * Static member object which ensures that this OcTree's prototype
-     * ends up in the classIDMapping only once
-     */
-    class StaticMemberInitializer{
-    public:
-      StaticMemberInitializer() {
-        OcTree* tree = new OcTree(0.1);
-        AbstractOcTree::registerTreeType(tree);
-      }
-    };
-    /// to ensure static initialization (only once)
-    static StaticMemberInitializer ocTreeMemberInit;
   };
 
+  namespace {
+
+    class OcTreeStaticInit : public AbstractOcTree{
+    protected:
+      /**
+       * Static member object which ensures that this OcTree's prototype
+       * ends up in the classIDMapping only once
+       */
+      class StaticMemberInitializer{
+      public:
+        StaticMemberInitializer() {
+          OcTree<false>* ftree = new OcTree<false>(0.1);
+          OcTree<true>*  ttree = new OcTree<true>(0.1);
+          AbstractOcTree::registerTreeType(false, ftree);
+          AbstractOcTree::registerTreeType(true,  ttree);
+        }
+      };
+      /// to ensure static initialization (only once)
+      static StaticMemberInitializer ocTreeMemberInit;
+    };
+
+  }
+
 } // end namespace
+
+#include "octomap/OcTree.hxx"
 
 #endif

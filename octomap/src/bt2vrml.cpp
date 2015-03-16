@@ -67,7 +67,7 @@ int main(int argc, char** argv) {
 
   cout << "\nReading OcTree file\n===========================\n";
   // TODO: check if file exists and if OcTree read correctly?
-  OcTree* tree = new OcTree(btFilename);
+  OcTree<>* tree = new OcTree<>(btFilename);
 
 
   cout << "\nWriting occupied volumes to VRML\n===========================\n";
@@ -79,7 +79,7 @@ int main(int argc, char** argv) {
 
 
   size_t count(0);
-  for(OcTree::leaf_iterator it = tree->begin(), end=tree->end(); it!= end; ++it) {
+  for(OcTree<>::leaf_iterator it = tree->begin(), end=tree->end(); it!= end; ++it) {
     if(tree->isNodeOccupied(*it)){
       count++;
       double size = it.getSize();

@@ -71,14 +71,14 @@ void printUsage(char* self){
   exit(0);
 }
 
-void calcThresholdedNodes(const OcTree* tree,
+void calcThresholdedNodes(const OcTree<>* tree,
                           unsigned int& num_thresholded,
                           unsigned int& num_other)
 {
   num_thresholded = 0;
   num_other = 0;
 
-  for(OcTree::tree_iterator it = tree->begin_tree(), end=tree->end_tree(); it!= end; ++it){
+  for(OcTree<>::tree_iterator it = tree->begin_tree(), end=tree->end_tree(); it!= end; ++it){
     if (tree->isNodeAtThreshold(*it))
       num_thresholded++;
     else
@@ -86,7 +86,7 @@ void calcThresholdedNodes(const OcTree* tree,
   }
 }
 
-void outputStatistics(const OcTree* tree){
+void outputStatistics(const OcTree<>* tree){
   unsigned int numThresholded, numOther;
   calcThresholdedNodes(tree, numThresholded, numOther);
   size_t memUsage = tree->memoryUsage();
@@ -117,7 +117,7 @@ int main(int argc, char** argv) {
   unsigned char compression = 1;
 
   // get default sensor model values:
-  OcTree emptyTree(0.1);
+  OcTree<> emptyTree(0.1);
   double clampingMin = emptyTree.getClampingThresMin();
   double clampingMax = emptyTree.getClampingThresMax();
   double probMiss = emptyTree.getProbMiss();
@@ -234,7 +234,7 @@ int main(int argc, char** argv) {
 
 
   cout << "\nCreating tree\n===========================\n";
-  OcTree* tree = new OcTree(res);
+  OcTree<>* tree = new OcTree<>(res);
 
   tree->setClampingThresMin(clampingMin);
   tree->setClampingThresMax(clampingMax);

@@ -2,8 +2,8 @@
  * OctoMap - An Efficient Probabilistic 3D Mapping Framework Based on Octrees
  * http://octomap.github.com/
  *
- * Copyright (c) 2009-2013, R. Schmitt, K.M. Wurm and A. Hornung,
- * University of Freiburg. All rights reserved.
+ * Copyright (c) 2009-2013, K.M. Wurm and A. Hornung, University of Freiburg
+ * All rights reserved.
  * License: New BSD
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,10 +31,40 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <octomap/CountingOcTree.h>
+#include "octomap/OcTreeStamped.h"
 
 namespace octomap {
 
-  CountingOcTreeStaticInit::StaticMemberInitializer CountingOcTreeStaticInit::ocTreeMemberInit;
+  template <bool COPY_ON_WRITE>
+  unsigned int OcTreeStamped<COPY_ON_WRITE>::getLastUpdateTime() {
+    // this value is updated whenever inner nodes are 
+    // updated using updateOccupancyChildren()
+    return this->root->getTimestamp();
+  }
 
-}
+  template <bool COPY_ON_WRITE>
+  void OcTreeStamped<COPY_ON_WRITE>::degradeOutdatedNodes(unsigned int time_thres) {
+    unsigned int query_time = (unsigned int) time(NULL); 
+
+    for(typename OccupancyOcTreeBase <OcTreeNodeStamped<COPY_ON_WRITE> >::leaf_iterator it = this->begin_leafs(), end=this->end_leafs(); 
+        it!= end; ++it) {
+      if ( this->isNodeOccupied(*it) 
+           && ((query_time - it->getTimestamp()) > time_thres) ) {
+        integrateMissNoTime(&*it);
+      }
+    }
+  }  
+
+  template <bool COPY_ON_WRITE>
+  void OcTreeStamped<COPY_ON_WRITE>::updateNodeLogOdds(OcTreeNodeStamped<COPY_ON_WRITE>* node, const float& update) const {
+    OccupancyOcTreeBase<OcTreeNodeStamped<COPY_ON_WRITE> >::updateNodeLogOdds(node, update);
+    node->updateTimestamp();
+  }
+
+  template <bool COPY_ON_WRITE>
+  void OcTreeStamped<COPY_ON_WRITE>::integrateMissNoTime(OcTreeNodeStamped<COPY_ON_WRITE>* node) const{
+    OccupancyOcTreeBase<OcTreeNodeStamped<COPY_ON_WRITE> >::updateNodeLogOdds(node, this->prob_miss_log);
+  }
+
+} // end namespace
+

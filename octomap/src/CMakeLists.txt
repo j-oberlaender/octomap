@@ -3,12 +3,12 @@ SET (octomap_SRCS
   AbstractOccupancyOcTree.cpp
   Pointcloud.cpp
   ScanGraph.cpp
+  ColorOcTree.cpp
   CountingOcTree.cpp
   OcTree.cpp
-  OcTreeNode.cpp
   OcTreeStamped.cpp
   OcTreeLUT.cpp
-  ColorOcTree.cpp
+  CoWPolicy.cpp
   )
 
 # dynamic and static libs, see CMake FAQ:
@@ -50,6 +50,9 @@ TARGET_LINK_LIBRARIES(compare_octrees octomap)
 
 ADD_EXECUTABLE(simple_example simple_example.cpp)
 TARGET_LINK_LIBRARIES(simple_example octomap)
+
+ADD_EXECUTABLE(cow_example cow_example.cpp)
+TARGET_LINK_LIBRARIES(cow_example octomap)
 
 ADD_EXECUTABLE(normals_example normals_example.cpp)
 TARGET_LINK_LIBRARIES(normals_example octomap)

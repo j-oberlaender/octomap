@@ -13,8 +13,35 @@ using namespace octomath;
 int main(int argc, char** argv) {
 
 
+  {
+    OcTree<true> basic_tree (0.05);
+    point3d origin (0.0f, 0.0f, 0.0f);
+    point3d pt (2.01f, 0.01f, 0.01f);
+    cout << "Adding point at " << pt << " ..." << endl;
+    Pointcloud p;
+    p.push_back(pt);
+    basic_tree.insertPointCloud(p, origin);
 
-  OcTree<> tree (0.05);  
+    OcTree<true> basic_tree_copy (basic_tree);
+    cout << "Full OcTree:   " << basic_tree.calcNumUniqueNodes() << " of " << basic_tree.calcNumNodes() << " are unique; "
+         << basic_tree.getNumUniqueLeafNodes() << " of " << basic_tree.getNumLeafNodes() << " leaf nodes are unique." << endl
+         << "Copied OcTree: " << basic_tree_copy.calcNumUniqueNodes() << " of " << basic_tree_copy.calcNumNodes() << " are unique; "
+         << basic_tree_copy.getNumUniqueLeafNodes() << " of " << basic_tree_copy.getNumLeafNodes() << " leaf nodes are unique." << endl;
+
+    point3d pt2 (-2.01f, 0.01f, 0.01f);
+    cout << "Adding point at " << pt2 << " ..." << endl;
+    Pointcloud p2;
+    p2.push_back(pt2);
+    basic_tree.insertPointCloud(p2, origin);
+
+    cout << "Full OcTree:   " << basic_tree.calcNumUniqueNodes() << " of " << basic_tree.calcNumNodes() << " are unique; "
+         << basic_tree.getNumUniqueLeafNodes() << " of " << basic_tree.getNumLeafNodes() << " leaf nodes are unique." << endl
+         << "Copied OcTree: " << basic_tree_copy.calcNumUniqueNodes() << " of " << basic_tree_copy.calcNumNodes() << " are unique; "
+         << basic_tree_copy.getNumUniqueLeafNodes() << " of " << basic_tree_copy.getNumLeafNodes() << " leaf nodes are unique." << endl;
+  }
+
+
+  OcTree<true> tree (0.05);
 
 
 
@@ -37,14 +64,14 @@ int main(int argc, char** argv) {
   tree.insertPointCloud(p, origin);
 
 
-  cout << "Writing to sphere.bt..." << endl;
-  EXPECT_TRUE(tree.writeBinary("sphere.bt"));
+  cout << "Writing to sphere_cow.bt..." << endl;
+  EXPECT_TRUE(tree.writeBinary("sphere_cow.bt"));
 
   // -----------------------------------------------
 
   cout << "Casting rays in sphere ..." << endl;
 
-  OcTree<> sampled_surface (0.05);  
+  OcTree<true> sampled_surface (0.05);  
 
   point3d direction = point3d (1.0,0.0,0.0);
   point3d obstacle(0,0,0);
@@ -73,8 +100,8 @@ int main(int argc, char** argv) {
     direction.rotate_IP (0,angle,0);
   }
 
-  cout << "Writing sampled_surface.bt" << endl;
-  EXPECT_TRUE(sampled_surface.writeBinary("sampled_surface.bt"));
+  cout << "Writing sampled_surface_cow.bt" << endl;
+  EXPECT_TRUE(sampled_surface.writeBinary("sampled_surface_cow.bt"));
 
   mean_dist /= (double) hit;
   std::cout << " hits / misses / unknown: " << hit  << " / " << miss << " / " << unknown << std::endl;
@@ -88,16 +115,16 @@ int main(int argc, char** argv) {
   // -----------------------------------------------
 
   cout << "generating single rays..." << endl;
-  OcTree<> single_beams(0.03333);
+  OcTree<true> single_beams(0.03333);
   int num_beams = 17;
   float beamLength = 10.0f;
   point3d single_origin (1.0f, 0.45f, 0.45f);
   point3d single_origin_top (1.0f, 0.45f, 1.0);
   point3d single_endpoint(beamLength, 0.0f, 0.0f);
-	
-	
-  for (int i=0; i<num_beams; i++) {    
-    for (int j=0; j<num_beams; j++) {          
+
+
+  for (int i=0; i<num_beams/2; i++) {
+    for (int j=0; j<num_beams; j++) {
       if (!single_beams.insertRay(single_origin, single_origin+single_endpoint)) {
 	cout << "ERROR while inserting ray from " << single_origin << " to " << single_endpoint << endl;
       }
@@ -106,16 +133,48 @@ int main(int argc, char** argv) {
     single_endpoint.rotate_IP (0,DEG2RAD(360.0/num_beams),0);
   }
 
-	
-  cout << "done." << endl;
-  cout << "writing to beams.bt..." << endl;
-  EXPECT_TRUE(single_beams.writeBinary("beams.bt"));
 
+  cout << "done." << endl;
+
+  cout << "creating CoW copy..." << endl;
+  OcTree<true> single_beams_copy(single_beams);
+  EXPECT_TRUE(single_beams.calcNumUniqueNodes() == 0);
+  EXPECT_TRUE(single_beams_copy.calcNumUniqueNodes() == 0);
+  unsigned int nodes_in_copy = single_beams_copy.calcNumNodes();
+
+  cout << "Full OcTree:   " << single_beams.calcNumUniqueNodes() << " of " << single_beams.calcNumNodes() << " are unique; "
+       << single_beams.getNumUniqueLeafNodes() << " of " << single_beams.getNumLeafNodes() << " leaf nodes are unique." << endl
+       << "Copied OcTree: " << single_beams_copy.calcNumUniqueNodes() << " of " << single_beams_copy.calcNumNodes() << " are unique; "
+       << single_beams_copy.getNumUniqueLeafNodes() << " of " << single_beams_copy.getNumLeafNodes() << " leaf nodes are unique." << endl;
+
+  cout << "generating second half of single rays..." << endl;
+  for (int i=num_beams/2; i<num_beams; i++) {
+    for (int j=0; j<num_beams; j++) {
+      if (!single_beams.insertRay(single_origin, single_origin+single_endpoint)) {
+	cout << "ERROR while inserting ray from " << single_origin << " to " << single_endpoint << endl;
+      }
+      single_endpoint.rotate_IP (0,0,DEG2RAD(360.0/num_beams));
+    }
+    single_endpoint.rotate_IP (0,DEG2RAD(360.0/num_beams),0);
+  }
+  cout << "Full OcTree:   " << single_beams.calcNumUniqueNodes() << " of " << single_beams.calcNumNodes() << " are unique; "
+       << single_beams.getNumUniqueLeafNodes() << " of " << single_beams.getNumLeafNodes() << " leaf nodes are unique." << endl
+       << "               " << single_beams.memoryUsage() << " bytes used." << endl
+       << "Copied OcTree: " << single_beams_copy.calcNumUniqueNodes() << " of " << single_beams_copy.calcNumNodes() << " are unique; "
+       << single_beams_copy.getNumUniqueLeafNodes() << " of " << single_beams_copy.getNumLeafNodes() << " leaf nodes are unique." << endl
+       << "               " << single_beams_copy.uniqueMemoryUsage() << " bytes used uniquely (vs. " << single_beams_copy.memoryUsage() << " for the whole tree)." << endl;
+
+  EXPECT_TRUE(single_beams_copy.calcNumNodes() == nodes_in_copy);
+  cout << "writing to beams_cow.bt..." << endl;
+  EXPECT_TRUE(single_beams_copy.writeBinary("beams_cow.bt"));
+  cout << "writing to beams_cow_2.bt..." << endl;
+  EXPECT_TRUE(single_beams.writeBinary("beams_cow_2.bt"));
+  EXPECT_TRUE(single_beams.calcNumNodes() == single_beams.calcNumUniqueNodes());
 
   ////// more tests from unit_tests.cpp:
   double res = 0.1;
   double res_2 = res/2.0;
-  OcTree<> cubeTree(res);
+  OcTree<true> cubeTree(res);
   // fill a cube with "free", end is "occupied":
   for (float x=-0.95; x <= 1.0; x+=res){
     for (float y=-0.95; y <= 1.0; y+=res){
@@ -135,7 +194,7 @@ int main(int argc, char** argv) {
   EXPECT_TRUE(cubeTree.updateNode(-res_2,res_2,-res_2, true));
   EXPECT_TRUE(cubeTree.updateNode(-3*res_2,res_2,-res_2, true));
 
-  cubeTree.writeBinary("raycasting_cube.bt");
+  cubeTree.writeBinary("raycasting_cube_cow.bt");
   origin = point3d(0.0f, 0.0f, 0.0f);
   point3d end;
   // hit the corner:
@@ -183,7 +242,7 @@ int main(int argc, char** argv) {
   // test maxrange:
   EXPECT_FALSE(cubeTree.castRay(origin, direction, end, true, 0.9));
   std::cout << "Max range endpoint: " << end << std::endl;
-  OcTreeNode<>* endPt = cubeTree.search(end);
+  OcTreeNode<true>* endPt = cubeTree.search(end);
   EXPECT_TRUE(endPt);
   EXPECT_FALSE(cubeTree.isNodeOccupied(endPt));
   double dist = (origin - end).norm();

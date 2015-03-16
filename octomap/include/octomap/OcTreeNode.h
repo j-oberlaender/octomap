@@ -49,7 +49,8 @@ namespace octomap {
    * createChild, getChild, and getChild const. See OcTreeNodeLabeled for an example.
    *
    */
-  class OcTreeNode : public OcTreeDataNode<float> {
+  template <bool COPY_ON_WRITE=false>
+  class OcTreeNode : public OcTreeDataNode<float, COPY_ON_WRITE> {
 
   public:
     OcTreeNode();
@@ -58,11 +59,14 @@ namespace octomap {
     bool createChild(unsigned int i);
 
     // overloaded, so that the return type is correct:
-    inline OcTreeNode* getChild(unsigned int i) {
-      return static_cast<OcTreeNode*> (OcTreeDataNode<float>::getChild(i));
+    inline OcTreeNode<COPY_ON_WRITE>* getChild(unsigned int i) {
+      return static_cast<OcTreeNode<COPY_ON_WRITE>*> (OcTreeDataNode<float, COPY_ON_WRITE>::getChild(i));
     }
-    inline const OcTreeNode* getChild(unsigned int i) const {
-      return static_cast<const OcTreeNode*> (OcTreeDataNode<float>::getChild(i));
+    inline const OcTreeNode<COPY_ON_WRITE>* getConstChild(unsigned int i) const {
+      return static_cast<const OcTreeNode<COPY_ON_WRITE>*> (OcTreeDataNode<float, COPY_ON_WRITE>::getConstChild(i));
+    }
+    inline const OcTreeNode<COPY_ON_WRITE>* getChild(unsigned int i) const {
+      return getConstChild(i);
     }
 
     // -- node occupancy  ----------------------------
@@ -87,17 +91,24 @@ namespace octomap {
 
     /// update this node's occupancy according to its children's maximum occupancy
     inline void updateOccupancyChildren() {
+      assert (this->unique());
       this->setLogOdds(this->getMaxChildLogOdds());  // conservative
     }
 
     /// adds p to the node's logOdds value (with no boundary / threshold checking!)
     void addValue(const float& p);
     
+    using OcTreeDataNode<float, COPY_ON_WRITE>::childExists;
 
   protected:
     // "value" stores log odds occupancy probability
+    using OcTreeDataNode<float, COPY_ON_WRITE>::value;
+    using OcTreeDataNode<float, COPY_ON_WRITE>::children;
+    using OcTreeDataNode<float, COPY_ON_WRITE>::allocChildren;
   };
 
 } // end namespace
+
+#include "octomap/OcTreeNode.hxx"
 
 #endif

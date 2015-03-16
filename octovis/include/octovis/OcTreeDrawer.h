@@ -116,6 +116,11 @@ namespace octomap {
 
     void initOctreeGridVis();
 
+  private:
+    template <bool COPY_ON_WRITE>
+    void setOcTreeInternal(const OcTree<COPY_ON_WRITE>& octree, const octomap::pose6d& origin, int map_id_);
+
+  protected:
     //! OpenGL representation of Octree cells (cubes)
 
     GLfloat** m_occupiedThresArray;
@@ -156,5 +161,7 @@ namespace octomap {
     int map_id;
   };
 }
+
+#include "octovis/OcTreeDrawer.hxx"
 
 #endif /* OCTREEDRAWER_H_ */

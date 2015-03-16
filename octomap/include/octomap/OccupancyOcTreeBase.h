@@ -324,7 +324,7 @@ namespace octomap {
      * @return true if an occupied cell was hit, false if the maximum range or octree bounds are reached, or if an unknown node was hit.
      */
     virtual bool castRay(const point3d& origin, const point3d& direction, point3d& end,
-                 bool ignoreUnknownCells=false, double maxRange=-1.0) const;
+                 bool ignoreUnknownCells=false, double maxRange=-1.0);
 
     /**
      * Retrieves the entry point of a ray into a voxel. This is the closest intersection point of the ray

@@ -6,7 +6,7 @@
 using namespace std;
 using namespace octomap;
 
-void printChanges(OcTree& tree){
+void printChanges(OcTree<>& tree){
   unsigned int changedOccupied = 0;
   unsigned int changedFree = 0;
   unsigned int actualOccupied = 0;
@@ -18,7 +18,7 @@ void printChanges(OcTree& tree){
   // iterate through the changed nodes
   KeyBoolMap::const_iterator it;
   for (it=tree.changedKeysBegin(); it!=tree.changedKeysEnd(); it++) {
-    OcTreeNode* node = tree.search(it->first);
+    OcTreeNode<>* node = tree.search(it->first);
     if (node != NULL) {
       if (tree.isNodeOccupied(node)) {
         changedOccupied += 1;
@@ -33,7 +33,7 @@ void printChanges(OcTree& tree){
 
 
   // iterate through the entire tree
-  for(OcTree::tree_iterator it=tree.begin_tree(),
+  for(OcTree<>::tree_iterator it=tree.begin_tree(),
       end=tree.end_tree(); it!= end; ++it) {
     if (it.isLeaf()) {
       if (tree.isNodeOccupied(*it)) {
@@ -58,7 +58,7 @@ int main(int argc, char** argv) {
 
   //##############################################################
 
-  OcTree tree (0.05);
+  OcTree<> tree (0.05);
   tree.enableChangeDetection(true);
 
   point3d origin (0.01, 0.01, 0.02);

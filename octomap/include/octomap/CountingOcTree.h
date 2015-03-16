@@ -50,7 +50,8 @@ namespace octomap {
    * \note In our mapping system this data structure is used in
    *       CountingOcTree in the sensor model only
    */
-  class CountingOcTreeNode : public OcTreeDataNode<unsigned int> {
+  template <bool COPY_ON_WRITE=false>
+  class CountingOcTreeNode : public OcTreeDataNode<unsigned int, COPY_ON_WRITE> {
 
   public:
 
@@ -59,15 +60,18 @@ namespace octomap {
     bool createChild(unsigned int i);
 
     inline CountingOcTreeNode* getChild(unsigned int i) {
-      return static_cast<CountingOcTreeNode*> (OcTreeDataNode<unsigned int>::getChild(i));
+      return static_cast<CountingOcTreeNode*> (OcTreeDataNode<unsigned int, COPY_ON_WRITE>::getChild(i));
     }
 
+    inline const CountingOcTreeNode* getConstChild(unsigned int i) const {
+      return static_cast<const CountingOcTreeNode*> (OcTreeDataNode<unsigned int, COPY_ON_WRITE>::getConstChild(i));
+    }
     inline const CountingOcTreeNode* getChild(unsigned int i) const {
-      return static_cast<const CountingOcTreeNode*> (OcTreeDataNode<unsigned int>::getChild(i));
+      return getConstChild(i);
     }
 
-    inline unsigned int getCount() const { return getValue(); }
-    inline void increaseCount() { value++; }
+    inline unsigned int getCount() const { return this->getValue(); }
+    inline void increaseCount() { this->value++; }
     inline void setCount(unsigned c) {this->setValue(c); }
 
     // overloaded:
@@ -85,40 +89,52 @@ namespace octomap {
    * \note In our mapping system this data structure is used in
    *       the sensor model only. Do not use, e.g., insertScan.
    */
-  class CountingOcTree : public OcTreeBase <CountingOcTreeNode> {
+  template <bool COPY_ON_WRITE=false>
+  class CountingOcTree : public OcTreeBase <CountingOcTreeNode<COPY_ON_WRITE> > {
 
   public:
     /// Default constructor, sets resolution of leafs
-    CountingOcTree(double resolution) : OcTreeBase<CountingOcTreeNode>(resolution) {};    
-    virtual CountingOcTreeNode* updateNode(const point3d& value);
-    CountingOcTreeNode* updateNode(const OcTreeKey& k);
+    CountingOcTree(double resolution) : OcTreeBase<CountingOcTreeNode<COPY_ON_WRITE> >(resolution) {};    
+    virtual CountingOcTreeNode<COPY_ON_WRITE>* updateNode(const point3d& value);
+    CountingOcTreeNode<COPY_ON_WRITE>* updateNode(const OcTreeKey& k);
     void getCentersMinHits(point3d_list& node_centers, unsigned int min_hits) const;
+
+    std::string getTreeType() const {return "CountingOcTree";}
 
   protected:
 
     void getCentersMinHitsRecurs( point3d_list& node_centers,
                                   unsigned int& min_hits,
                                   unsigned int max_depth,
-                                  CountingOcTreeNode* node, unsigned int depth,
+                                  CountingOcTreeNode<COPY_ON_WRITE>* node, unsigned int depth,
                                   const OcTreeKey& parent_key) const;
-
-    /**
-     * Static member object which ensures that this OcTree's prototype
-     * ends up in the classIDMapping only once
-     */
-    class StaticMemberInitializer{
-       public:
-         StaticMemberInitializer() {
-           CountingOcTree* tree = new CountingOcTree(0.1);
-           AbstractOcTree::registerTreeType(tree);
-         }
-    };
-    /// static member to ensure static initialization (only once)
-    static StaticMemberInitializer countingOcTreeMemberInit;
   };
 
+  namespace {
+
+    class CountingOcTreeStaticInit : public AbstractOcTree{
+    protected:
+      /**
+       * Static member object which ensures that this OcTree's prototype
+       * ends up in the classIDMapping only once
+       */
+      class StaticMemberInitializer{
+      public:
+        StaticMemberInitializer() {
+          CountingOcTree<false>* ftree = new CountingOcTree<false>(0.1);
+          CountingOcTree<true>*  ttree = new CountingOcTree<true>(0.1);
+          AbstractOcTree::registerTreeType(false, ftree);
+          AbstractOcTree::registerTreeType(true,  ttree);
+        }
+      };
+      /// to ensure static initialization (only once)
+      static StaticMemberInitializer ocTreeMemberInit;
+    };
+
+  }
 
 }
 
+#include "octomap/CountingOcTree.hxx"
 
 #endif

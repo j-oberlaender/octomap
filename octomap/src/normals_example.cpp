@@ -41,7 +41,7 @@ using namespace std;
 using namespace octomap;
 
 
-void print_query_info(point3d query, OcTreeNode* node) {
+void print_query_info(point3d query, OcTreeNode<>* node) {
   if (node != NULL) {
     cout << "occupancy probability at " << query << ":\t " << node->getOccupancy() << endl;
   }
@@ -54,7 +54,7 @@ int main(int argc, char** argv) {
   cout << endl;
   cout << "generating example map" << endl;
 
-  OcTree tree (0.1);  // create empty tree with resolution 0.1
+  OcTree<> tree (0.1);  // create empty tree with resolution 0.1
 
 
   // insert some measurements of occupied cells
@@ -83,7 +83,7 @@ int main(int argc, char** argv) {
   cout << "performing some queries around the desired voxel:" << endl;
   
   point3d query;
-  OcTreeNode* result = NULL;
+  OcTreeNode<>* result = NULL;
 
   for(float z = -0.6; z < -0.21; z += 0.1){
     for(float y = -0.6; y < -0.21; y += 0.1){

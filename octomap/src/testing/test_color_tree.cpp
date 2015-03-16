@@ -6,7 +6,7 @@ using namespace std;
 using namespace octomap;
 
 
-void print_query_info(point3d query, ColorOcTreeNode* node) {
+void print_query_info(point3d query, ColorOcTreeNode<>* node) {
   if (node != NULL) {
     cout << "occupancy probability at " << query << ":\t " << node->getOccupancy() << endl;
     cout << "color of node is: " << node->getColor()
@@ -20,13 +20,13 @@ void print_query_info(point3d query, ColorOcTreeNode* node) {
 int main(int argc, char** argv) {
 
   double res = 0.05;  // create empty tree with resolution 0.05 (different from default 0.1 for test)
-  ColorOcTree tree (res);
+  ColorOcTree<> tree (res);
   // insert some measurements of occupied cells
   for (int x=-20; x<20; x++) {
     for (int y=-20; y<20; y++) {
       for (int z=-20; z<20; z++) {
         point3d endpoint ((float) x*0.05f+0.01f, (float) y*0.05f+0.01f, (float) z*0.05f+0.01f);
-        ColorOcTreeNode* n = tree.updateNode(endpoint, true); 
+        ColorOcTreeNode<>* n = tree.updateNode(endpoint, true); 
         n->setColor(z*5+100,x*5+100,y*5+100); // set color to red
       }
     }
@@ -37,7 +37,7 @@ int main(int argc, char** argv) {
     for (int y=-30; y<30; y++) {
       for (int z=-30; z<30; z++) {
         point3d endpoint ((float) x*0.02f+2.0f, (float) y*0.02f+2.0f, (float) z*0.02f+2.0f);
-        ColorOcTreeNode* n = tree.updateNode(endpoint, false); 
+        ColorOcTreeNode<>* n = tree.updateNode(endpoint, false); 
         n->setColor(255,255,0); // set color to yellow
       }
     }
@@ -62,7 +62,7 @@ int main(int argc, char** argv) {
   EXPECT_EQ(read_tree->getTreeType().compare(tree.getTreeType()), 0);
   EXPECT_FLOAT_EQ(read_tree->getResolution(), tree.getResolution());
   EXPECT_EQ(read_tree->size(), tree.size());
-  ColorOcTree* read_color_tree = dynamic_cast<ColorOcTree*>(read_tree);
+  ColorOcTree<>* read_color_tree = dynamic_cast<ColorOcTree<>*>(read_tree);
   EXPECT_TRUE(read_color_tree);
 
 
@@ -70,8 +70,8 @@ int main(int argc, char** argv) {
   
   {
     point3d query (0., 0., 0.);
-    ColorOcTreeNode* result = tree.search (query);
-    ColorOcTreeNode* result2 = read_color_tree->search (query);
+    ColorOcTreeNode<>* result = tree.search (query);
+    ColorOcTreeNode<>* result2 = read_color_tree->search (query);
     std::cout << "READ: ";
     print_query_info(query, result);
     std::cout << "WRITE: ";

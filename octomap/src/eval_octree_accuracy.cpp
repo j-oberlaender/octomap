@@ -101,7 +101,7 @@ int main(int argc, char** argv) {
   }
 
   cout << "\nCreating tree\n===========================\n";
-  OcTree* tree = new OcTree(res);
+  OcTree<>* tree = new OcTree<>(res);
 
   unsigned int numScans = graph->size();
   unsigned int currentScan = 1;
@@ -153,7 +153,7 @@ int main(int argc, char** argv) {
 
       // count free cells
       for (KeySet::iterator it = free_cells.begin(); it != free_cells.end(); ++it) {
-        OcTreeNode* n = tree->search(*it);
+        OcTreeNode<>* n = tree->search(*it);
         if (n){
           if (tree->isNodeOccupied(n))
             num_voxels_wrong++;
@@ -163,7 +163,7 @@ int main(int argc, char** argv) {
           num_voxels_unknown++;
       } // count occupied cells
       for (KeySet::iterator it = occupied_cells.begin(); it != occupied_cells.end(); ++it) {
-        OcTreeNode* n = tree->search(*it);
+        OcTreeNode<>* n = tree->search(*it);
         if (n){
           if (tree->isNodeOccupied(n))
             num_voxels_correct++;

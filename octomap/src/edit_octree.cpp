@@ -144,7 +144,7 @@ int main(int argc, char **argv)
       outputFilename = inputFilename + ".edit.bt";
     }
 
-    OcTree* tree = new OcTree(0.1);
+    OcTree<>* tree = new OcTree<>(0.1);
     if (!tree->readBinary(inputFilename)){
       OCTOMAP_ERROR("Could not open file, exiting.\n");
       exit(1);

@@ -82,7 +82,7 @@ int main(int argc, char** argv) {
 
   // reading binary:
   if (inputFilename.length() > 3 && (inputFilename.compare(inputFilename.length()-3, 3, ".bt") == 0)){
-    OcTree* binaryTree = new OcTree(0.1);
+    OcTree<>* binaryTree = new OcTree<>(0.1);
 
     if (binaryTree->readBinary(file) && binaryTree->size() > 1)
       tree = binaryTree;
@@ -99,7 +99,7 @@ int main(int argc, char** argv) {
       // reset and try old ColorOcTree format:
       file.clear(); // clear eofbit of istream
       file.seekg(streampos);
-      ColorOcTree* colorTree = new ColorOcTree(0.1);
+      ColorOcTree<>* colorTree = new ColorOcTree<>(0.1);
       colorTree->readData(file);
       if (colorTree->size() > 1 && file.good()){
         OCTOMAP_WARNING_STR("Detected Binary ColorOcTree to convert. \nPlease check and update the new file header (resolution will likely be wrong).");

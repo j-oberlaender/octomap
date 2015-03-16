@@ -44,7 +44,7 @@ int main(int argc, char** argv) {
 
   cout << "generating example map" << endl;
 
-  OcTree tree (0.1);  // create empty tree with resolution 0.1
+  OcTree<> tree (0.1);  // create empty tree with resolution 0.1
 
   // insert some measurements of free cells
 

@@ -37,9 +37,9 @@ void computeChildCenter (const unsigned int& pos,
 /// mimics old deprecated behavior to compare against
 void getLeafNodesRecurs(std::list<OcTreeVolume>& voxels,
     unsigned int max_depth,
-    OcTreeNode* node, unsigned int depth,
+    OcTreeNode<>* node, unsigned int depth,
     const point3d& parent_center, const point3d& tree_center,
-    OcTree* tree, bool occupied)
+    OcTree<>* tree, bool occupied)
 {
   if ((depth <= max_depth) && (node != NULL) ) {
     if (node->hasChildren() && (depth != max_depth)) {
@@ -70,7 +70,7 @@ void getLeafNodesRecurs(std::list<OcTreeVolume>& voxels,
 /// mimics old deprecated behavior to compare against
 void getVoxelsRecurs(std::list<OcTreeVolume>& voxels,
                                        unsigned int max_depth,
-                                       OcTreeNode* node, unsigned int depth,
+                                       OcTreeNode<>* node, unsigned int depth,
                                        const point3d& parent_center, const point3d& tree_center,
                                        double resolution){
 
@@ -123,7 +123,7 @@ double timediff(const timeval& start, const timeval& stop){
   return (stop.tv_sec - start.tv_sec) + 1.0e-6 *(stop.tv_usec - start.tv_usec);
 }
 
-void boundingBoxTest(OcTree* tree){
+void boundingBoxTest(OcTree<>* tree){
   //tree->expand();
   // test complete tree (should be equal to no bbx)
   OcTreeKey bbxMinKey, bbxMaxKey;
@@ -137,14 +137,14 @@ void boundingBoxTest(OcTree* tree){
   EXPECT_TRUE(tree->coordToKeyChecked(bbxMin, bbxMinKey));
   EXPECT_TRUE(tree->coordToKeyChecked(bbxMax, bbxMaxKey));
 
-  OcTree::leaf_bbx_iterator it_bbx = tree->begin_leafs_bbx(bbxMinKey,bbxMaxKey);
+  OcTree<>::leaf_bbx_iterator it_bbx = tree->begin_leafs_bbx(bbxMinKey,bbxMaxKey);
   EXPECT_TRUE(it_bbx == tree->begin_leafs_bbx(bbxMinKey,bbxMaxKey));
-  OcTree::leaf_bbx_iterator end_bbx = tree->end_leafs_bbx();
+  OcTree<>::leaf_bbx_iterator end_bbx = tree->end_leafs_bbx();
   EXPECT_TRUE(end_bbx == tree->end_leafs_bbx());
 
-  OcTree::leaf_iterator it = tree->begin_leafs();
+  OcTree<>::leaf_iterator it = tree->begin_leafs();
   EXPECT_TRUE(it == tree->begin_leafs());
-  OcTree::leaf_iterator end = tree->end_leafs();
+  OcTree<>::leaf_iterator end = tree->end_leafs();
   EXPECT_TRUE(end == tree->end_leafs());
 
 
@@ -166,7 +166,7 @@ void boundingBoxTest(OcTree* tree){
   KeyVolumeMap bbxVoxels;
 
   size_t count = 0;
-  for(OcTree::leaf_bbx_iterator it = tree->begin_leafs_bbx(bbxMinKey,bbxMaxKey), end=tree->end_leafs_bbx();
+  for(OcTree<>::leaf_bbx_iterator it = tree->begin_leafs_bbx(bbxMinKey,bbxMaxKey), end=tree->end_leafs_bbx();
       it!= end; ++it)
   {
     count++;
@@ -175,7 +175,7 @@ void boundingBoxTest(OcTree* tree){
     EXPECT_FALSE(it->hasChildren());
 
     // leaf exists in tree:
-    OcTreeNode* node = tree->search(currentKey);
+    OcTreeNode<>* node = tree->search(currentKey);
     EXPECT_TRUE(node);
     EXPECT_EQ(node, &(*it));
     // all leafs are actually in the bbx:
@@ -194,7 +194,7 @@ void boundingBoxTest(OcTree* tree){
 
 
   // compare with manual BBX check on all leafs:
-  for(OcTree::leaf_iterator it = tree->begin(), end=tree->end(); it!= end; ++it) {
+  for(OcTree<>::leaf_iterator it = tree->begin(), end=tree->end(); it!= end; ++it) {
     OcTreeKey key = it.getKey();
     if (    key[0] >= bbxMinKey[0] && key[0] <= bbxMaxKey[0]
          && key[1] >= bbxMinKey[1] && key[1] <= bbxMaxKey[1]
@@ -239,20 +239,20 @@ int main(int argc, char** argv) {
     maxDepth = tree_depth;
 
   // iterate over empty tree:
-  OcTree emptyTree(0.2);
+  OcTree<> emptyTree(0.2);
   EXPECT_EQ(emptyTree.size(), 0);
   EXPECT_EQ(emptyTree.calcNumNodes(), 0);
 
   size_t iteratedNodes = 0;
-  OcTree::tree_iterator t_it = emptyTree.begin_tree(maxDepth);
-  OcTree::tree_iterator t_end = emptyTree.end_tree();
+  OcTree<>::tree_iterator t_it = emptyTree.begin_tree(maxDepth);
+  OcTree<>::tree_iterator t_end = emptyTree.end_tree();
   EXPECT_TRUE (t_it == t_end);
   for( ; t_it != t_end; ++t_it){
     iteratedNodes++;
   }
   EXPECT_EQ(iteratedNodes, 0);
 
-  for(OcTree::leaf_iterator l_it = emptyTree.begin_leafs(maxDepth), l_end=emptyTree.end_leafs(); l_it!= l_end; ++l_it){
+  for(OcTree<>::leaf_iterator l_it = emptyTree.begin_leafs(maxDepth), l_end=emptyTree.end_leafs(); l_it!= l_end; ++l_it){
     iteratedNodes++;
   }
   EXPECT_EQ(iteratedNodes, 0);
@@ -262,7 +262,7 @@ int main(int argc, char** argv) {
 
 
   cout << "\nReading OcTree file\n===========================\n";
-  OcTree* tree = new OcTree(btFilename);
+  OcTree<>* tree = new OcTree<>(btFilename);
   if (tree->size()<= 1){
     std::cout << "Error reading file, exiting!\n";
     return 1;
@@ -282,7 +282,7 @@ int main(int argc, char** argv) {
 
   gettimeofday(&start, NULL);  // start timer
   size_t num_leafs_it = 0;
-  for(OcTree::leaf_iterator it = tree->begin(), end=tree->end(); it!= end; ++it) {
+  for(OcTree<>::leaf_iterator it = tree->begin(), end=tree->end(); it!= end; ++it) {
     num_leafs_it++;
   }
   gettimeofday(&stop, NULL);  // stop timer
@@ -304,7 +304,7 @@ int main(int argc, char** argv) {
   time_depr = timediff(start, stop);
 
   gettimeofday(&start, NULL);  // start timer
-  for(OcTree::iterator it = tree->begin(maxDepth), end=tree->end(); it!= end; ++it){
+  for(OcTree<>::iterator it = tree->begin(maxDepth), end=tree->end(); it!= end; ++it){
     if(tree->isNodeOccupied(*it))
     {
       //count ++;
@@ -327,7 +327,7 @@ int main(int argc, char** argv) {
   list_iterator.clear();
   list_depr.clear();
   gettimeofday(&start, NULL);  // start timer
-  for(OcTree::leaf_iterator it = tree->begin(maxDepth), end=tree->end(); it!= end; ++it) {
+  for(OcTree<>::leaf_iterator it = tree->begin(maxDepth), end=tree->end(); it!= end; ++it) {
     if(!tree->isNodeOccupied(*it))
       list_iterator.push_back(OcTreeVolume(it.getCoordinate(), it.getSize()));
   }
@@ -358,7 +358,7 @@ int main(int argc, char** argv) {
   time_depr = timediff(start, stop);
 
   gettimeofday(&start, NULL);  // start timers
-  for(OcTree::tree_iterator it = tree->begin_tree(maxDepth), end=tree->end_tree();
+  for(OcTree<>::tree_iterator it = tree->begin_tree(maxDepth), end=tree->end_tree();
       it!= end; ++it){
       //count ++;
       //std::cout << it.getDepth() << " " << " "<<it.getCoordinate()<< std::endl;
@@ -380,7 +380,7 @@ int main(int argc, char** argv) {
     // traverse all leaf nodes, timing:
     gettimeofday(&start, NULL);  // start timers
     count = 0;
-    for(OcTree::iterator it = tree->begin(maxDepth), end=tree->end();
+    for(OcTree<>::iterator it = tree->begin(maxDepth), end=tree->end();
         it!= end; ++it){
       // do something:
       // std::cout << it.getDepth() << " " << " "<<it.getCoordinate()<< std::endl;
@@ -404,9 +404,9 @@ int main(int argc, char** argv) {
 
   
   // test tree with one node:
-  OcTree simpleTree(0.01);
+  OcTree<> simpleTree(0.01);
   simpleTree.updateNode(point3d(10, 10, 10), 5.0f);
-  for(OcTree::leaf_iterator it = simpleTree.begin_leafs(maxDepth), end=simpleTree.end_leafs(); it!= end; ++it) {
+  for(OcTree<>::leaf_iterator it = simpleTree.begin_leafs(maxDepth), end=simpleTree.end_leafs(); it!= end; ++it) {
     std::cout << it.getDepth() << " " << " "<<it.getCoordinate()<< std::endl;
   }
 

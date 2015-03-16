@@ -13,7 +13,7 @@ int main(int argc, char** argv) {
 
   //##############################################################     
 
-  OcTree tree (0.05);  
+  OcTree<> tree (0.05);  
 
   point3d origin (0.01f, 0.01f, 0.02f);
   point3d point_on_surface (4.01f, 0.01f, 0.01f);

@@ -78,7 +78,7 @@ int main(int argc, char **argv)
     bool applyBBX = false;
     bool applyOffset = false;
     octomap::point3d offset(0.0, 0.0, 0.0);
-    OcTree *tree = 0;
+    OcTree<> *tree = 0;
 
     if(argc == 1) show_help = true;
     for(int i = 1; i < argc && !show_help; i++) {
@@ -210,7 +210,7 @@ int main(int argc, char **argv)
 
         if(!tree) {
             cout << "Generating octree with leaf size " << res << endl << endl;
-            tree = new OcTree(res);
+            tree = new OcTree<>(res);
         }
 
         if (applyBBX){

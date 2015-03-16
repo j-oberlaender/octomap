@@ -42,7 +42,8 @@
 namespace octomap {
   
   // node definition
-  class ColorOcTreeNode : public OcTreeNode {    
+  template <bool COPY_ON_WRITE=false>
+  class ColorOcTreeNode : public OcTreeNode<COPY_ON_WRITE> {    
   public:
     
     class Color {
@@ -60,9 +61,9 @@ namespace octomap {
     };
 
   public:
-    ColorOcTreeNode() : OcTreeNode() {}
+    ColorOcTreeNode() : OcTreeNode<COPY_ON_WRITE>() {}
 
-    ColorOcTreeNode(const ColorOcTreeNode& rhs) : OcTreeNode(rhs), color(rhs.color) {}
+    ColorOcTreeNode(const ColorOcTreeNode& rhs) : OcTreeNode<COPY_ON_WRITE>(rhs), color(rhs.color) {}
 
     bool operator==(const ColorOcTreeNode& rhs) const{
       return (rhs.value == value && rhs.color == color);
@@ -70,10 +71,13 @@ namespace octomap {
     
     // children
     inline ColorOcTreeNode* getChild(unsigned int i) {
-      return static_cast<ColorOcTreeNode*> (OcTreeNode::getChild(i));
+      return static_cast<ColorOcTreeNode*> (OcTreeNode<COPY_ON_WRITE>::getChild(i));
+    }
+    inline const ColorOcTreeNode* getConstChild(unsigned int i) const {
+      return static_cast<const ColorOcTreeNode*> (OcTreeNode<COPY_ON_WRITE>::getConstChild(i));
     }
     inline const ColorOcTreeNode* getChild(unsigned int i) const {
-      return static_cast<const ColorOcTreeNode*> (OcTreeNode::getChild(i));
+      return getConstChild(i);
     }
 
     bool createChild(unsigned int i) {
@@ -107,55 +111,61 @@ namespace octomap {
     std::istream& readValue (std::istream &s);
     std::ostream& writeValue(std::ostream &s) const;
     
+    using OcTreeDataNode<float, COPY_ON_WRITE>::childExists;
+
   protected:
+    using OcTreeNode<COPY_ON_WRITE>::value;
+    using OcTreeDataNode<float, COPY_ON_WRITE>::children;
+    using OcTreeDataNode<float, COPY_ON_WRITE>::allocChildren;
     Color color;
   };
 
 
   // tree definition
-  class ColorOcTree : public OccupancyOcTreeBase <ColorOcTreeNode> {
+  template <bool COPY_ON_WRITE=false>
+  class ColorOcTree : public OccupancyOcTreeBase <ColorOcTreeNode<COPY_ON_WRITE> > {
 
   public:
     /// Default constructor, sets resolution of leafs
-    ColorOcTree(double resolution) : OccupancyOcTreeBase<ColorOcTreeNode>(resolution) {};  
+    ColorOcTree(double resolution) : OccupancyOcTreeBase<ColorOcTreeNode<COPY_ON_WRITE> >(resolution) {};  
       
     /// virtual constructor: creates a new object of same type
     /// (Covariant return type requires an up-to-date compiler)
-    ColorOcTree* create() const {return new ColorOcTree(resolution); }
+    ColorOcTree* create() const {return new ColorOcTree(this->resolution); }
 
     std::string getTreeType() const {return "ColorOcTree";}
    
     // set node color at given key or coordinate. Replaces previous color.
-    ColorOcTreeNode* setNodeColor(const OcTreeKey& key, const unsigned char& r, 
-                                 const unsigned char& g, const unsigned char& b);
+    ColorOcTreeNode<COPY_ON_WRITE>* setNodeColor(const OcTreeKey& key, const unsigned char& r, 
+                                                 const unsigned char& g, const unsigned char& b);
 
-    ColorOcTreeNode* setNodeColor(const float& x, const float& y, 
-                                 const float& z, const unsigned char& r, 
-                                 const unsigned char& g, const unsigned char& b) {
+    ColorOcTreeNode<COPY_ON_WRITE>* setNodeColor(const float& x, const float& y, 
+                                                 const float& z, const unsigned char& r, 
+                                                 const unsigned char& g, const unsigned char& b) {
       OcTreeKey key;
       if (!this->coordToKeyChecked(point3d(x,y,z), key)) return NULL;
       return setNodeColor(key,r,g,b);
     }
 
     // integrate color measurement at given key or coordinate. Average with previous color
-    ColorOcTreeNode* averageNodeColor(const OcTreeKey& key, const unsigned char& r, 
-                                  const unsigned char& g, const unsigned char& b);
+    ColorOcTreeNode<COPY_ON_WRITE>* averageNodeColor(const OcTreeKey& key, const unsigned char& r, 
+                                                     const unsigned char& g, const unsigned char& b);
     
-    ColorOcTreeNode* averageNodeColor(const float& x, const float& y, 
-                                      const float& z, const unsigned char& r, 
-                                      const unsigned char& g, const unsigned char& b) {
+    ColorOcTreeNode<COPY_ON_WRITE>* averageNodeColor(const float& x, const float& y, 
+                                                     const float& z, const unsigned char& r, 
+                                                     const unsigned char& g, const unsigned char& b) {
       OcTreeKey key;
       if (!this->coordToKeyChecked(point3d(x,y,z), key)) return NULL;
       return averageNodeColor(key,r,g,b);
     }
 
     // integrate color measurement at given key or coordinate. Average with previous color
-    ColorOcTreeNode* integrateNodeColor(const OcTreeKey& key, const unsigned char& r, 
-                                  const unsigned char& g, const unsigned char& b);
+    ColorOcTreeNode<COPY_ON_WRITE>* integrateNodeColor(const OcTreeKey& key, const unsigned char& r, 
+                                                       const unsigned char& g, const unsigned char& b);
     
-    ColorOcTreeNode* integrateNodeColor(const float& x, const float& y, 
-                                      const float& z, const unsigned char& r, 
-                                      const unsigned char& g, const unsigned char& b) {
+    ColorOcTreeNode<COPY_ON_WRITE>* integrateNodeColor(const float& x, const float& y, 
+                                                       const float& z, const unsigned char& r, 
+                                                       const unsigned char& g, const unsigned char& b) {
       OcTreeKey key;
       if (!this->coordToKeyChecked(point3d(x,y,z), key)) return NULL;
       return integrateNodeColor(key,r,g,b);
@@ -168,27 +178,39 @@ namespace octomap {
     void writeColorHistogram(std::string filename);
     
   protected:
-    void updateInnerOccupancyRecurs(ColorOcTreeNode* node, unsigned int depth);
-
-    /**
-     * Static member object which ensures that this OcTree's prototype
-     * ends up in the classIDMapping only once
-     */
-    class StaticMemberInitializer{
-       public:
-         StaticMemberInitializer() {
-           ColorOcTree* tree = new ColorOcTree(0.1);
-           AbstractOcTree::registerTreeType(tree);
-         }
-    };
-    /// static member to ensure static initialization (only once)
-    static StaticMemberInitializer colorOcTreeMemberInit;
+    void updateInnerOccupancyRecurs(ColorOcTreeNode<COPY_ON_WRITE>* node, unsigned int depth);
 
   };
 
+  namespace {
+
+    class ColorOcTreeStaticInit : public AbstractOcTree{
+    protected:
+      /**
+       * Static member object which ensures that this OcTree's prototype
+       * ends up in the classIDMapping only once
+       */
+      class StaticMemberInitializer{
+      public:
+        StaticMemberInitializer() {
+          ColorOcTree<false>* ftree = new ColorOcTree<false>(0.1);
+          ColorOcTree<true>*  ttree = new ColorOcTree<true>(0.1);
+          AbstractOcTree::registerTreeType(false, ftree);
+          AbstractOcTree::registerTreeType(true,  ttree);
+        }
+      };
+      /// to ensure static initialization (only once)
+      static StaticMemberInitializer ocTreeMemberInit;
+    };
+
+  }
+
   //! user friendly output in format (r g b)
-  std::ostream& operator<<(std::ostream& out, ColorOcTreeNode::Color const& c);
+  std::ostream& operator<<(std::ostream& out, typename ColorOcTreeNode<false>::Color const& c);
+  std::ostream& operator<<(std::ostream& out, typename ColorOcTreeNode<true>::Color const& c);
 
 } // end namespace
+
+#include "octomap/ColorOcTree.hxx"
 
 #endif

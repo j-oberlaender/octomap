@@ -36,6 +36,7 @@
 
 
 #include "octomap_types.h"
+#include "CoWPolicy.h"
 #include "assert.h"
 #include <bitset>
 
@@ -53,9 +54,13 @@ namespace octomap {
    * \tparam T data to be stored in the node (e.g. a float for probabilities)
    *
    */
-  template<typename T> class OcTreeDataNode: public AbstractOcTreeNode {
+  template<typename T, bool COPY_ON_WRITE=false>
+  class OcTreeDataNode: public AbstractOcTreeNode, public CoWPolicy<COPY_ON_WRITE> {
 
   public:
+    static const bool copyOnWrite = COPY_ON_WRITE;
+    typedef OcTreeCoWPolicy<COPY_ON_WRITE> ThisOcTreeCoWPolicy;
+    typedef CoWPolicy<COPY_ON_WRITE> ThisCoWPolicy;
 
     OcTreeDataNode();
     OcTreeDataNode(T initVal);
@@ -80,10 +85,14 @@ namespace octomap {
     bool childExists(unsigned int i) const;
 
     /// \return a pointer to the i-th child of the node. The child needs to exist.
-    OcTreeDataNode<T>* getChild(unsigned int i);
+    OcTreeDataNode<T, COPY_ON_WRITE>* getChild(unsigned int i);
 
     /// \return a const pointer to the i-th child of the node. The child needs to exist.
-    const OcTreeDataNode<T>* getChild(unsigned int i) const;
+    const OcTreeDataNode<T, COPY_ON_WRITE>* getConstChild(unsigned int i) const;
+    /// \return a const pointer to the i-th child of the node. The child needs to exist.
+    inline const OcTreeDataNode<T, COPY_ON_WRITE>* getChild(unsigned int i) const {
+      return getConstChild(i);
+    }
 
     /// \return true if the node has at least one child
     bool hasChildren() const;
@@ -144,15 +153,26 @@ namespace octomap {
     /// Make the templated data type available from the outside
     typedef T DataType;
 
+    // -- copy-on-write helpers  ---------------------
+
+    /**
+     * If the refcount is > 1, makes a unique copy of this child node.
+     * The grandchildren are lazily copied (their refcounts are
+     * increased).
+     */
+    void makeUnique(unsigned int i);
+
 
   protected:
     void allocChildren();
 
+    /// Dereferences child i and deletes it if the refcount reaches 0.
+    void derefChild(unsigned int i);
+
     /// pointer to array of children, may be NULL
-    OcTreeDataNode<T>** children;
+    OcTreeDataNode<T, COPY_ON_WRITE>** children;
     /// stored data (payload)
     T value;
-
   };
 
 

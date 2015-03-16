@@ -31,10 +31,25 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <octomap/CountingOcTree.h>
+
+#include "assert.h"
+#include <octomap/octomap_types.h>
+#include <octomap/CoWPolicy.h>
 
 namespace octomap {
 
-  CountingOcTreeStaticInit::StaticMemberInitializer CountingOcTreeStaticInit::ocTreeMemberInit;
+  bool CoWPolicy<true>::unique() const {
+    return (refcount == 1);
+  }
+
+  void CoWPolicy<true>::ref() {
+    ++refcount;
+  }
+
+  bool CoWPolicy<true>::deref() {
+    assert (refcount >= 1);
+    --refcount;
+    return (refcount == 0);
+  }
 
 }

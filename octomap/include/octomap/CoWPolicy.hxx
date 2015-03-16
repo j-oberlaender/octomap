@@ -2,8 +2,8 @@
  * OctoMap - An Efficient Probabilistic 3D Mapping Framework Based on Octrees
  * http://octomap.github.com/
  *
- * Copyright (c) 2009-2013, K.M. Wurm and A. Hornung, University of Freiburg
- * All rights reserved.
+ * Copyright (c) 2009-2013, R. Schmitt, K.M. Wurm and A. Hornung,
+ * University of Freiburg. All rights reserved.
  * License: New BSD
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,70 +31,77 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <bitset>
-#include <cassert>
-#include <math.h>
-#include <fstream>
-#include <stdlib.h>
 
-#include <octomap/OcTreeNode.h>
+#include "assert.h"
 
 namespace octomap {
 
-  OcTreeNode::OcTreeNode()
-    : OcTreeDataNode<float>(0.0)
-  {
+  template <bool COPY_ON_WRITE>
+  template <typename T>
+  void OcTreeCoWPolicy<COPY_ON_WRITE>::makeUnique(T **child) const {
+    // No-op.
   }
 
-  OcTreeNode::~OcTreeNode(){
-  }
-
-  // TODO: Use Curiously Recurring Template Pattern instead of copying full function
-  // (same for getChild)
-  bool OcTreeNode::createChild(unsigned int i) {
-    if (children == NULL) {
-      allocChildren();
+  template <typename T>
+  void OcTreeCoWPolicy<true>::makeUnique(T **child) const {
+    assert (child);                // We must have a valid pointer.
+    if (*child != NULL && !(*child)->unique()){
+      (*child)->deref();
+      // This will increase the grandchildren's refcounts.
+      *child = new T(**child);
     }
-    assert (children[i] == NULL);
-    children[i] = new OcTreeNode();
+  }
+
+  template <bool COPY_ON_WRITE>
+  template <typename T>
+  void OcTreeCoWPolicy<COPY_ON_WRITE>::derefChild(T *child) const {
+    if (child != NULL)
+      delete child;
+  }
+
+  template <typename T>
+  void OcTreeCoWPolicy<true>::derefChild(T *child) const {
+    if (child != NULL && child->deref())
+      delete child;
+  }
+
+  template <bool COPY_ON_WRITE>
+  template <typename T>
+  void OcTreeCoWPolicy<COPY_ON_WRITE>::deepCopy(T **root, T *rhs_root) const
+  {
+    assert (root); // We must have a valid pointer.
+
+    // copy nodes recursively:
+    if (rhs_root)
+      *root = new T(*(rhs_root));
+  }
+
+  template <typename T>
+  void OcTreeCoWPolicy<true>::deepCopy(T **root, T *rhs_root) const
+  {
+    assert (root); // We must have a valid pointer.
+
+    // just reference the root:
+    if (rhs_root){
+      rhs_root->ref();
+      *root = rhs_root;
+    }
+  }
+
+  template <bool COPY_ON_WRITE>
+  bool CoWPolicy<COPY_ON_WRITE>::unique() const {
     return true;
   }
 
-  // ============================================================
-  // =  occupancy probability  ==================================
-  // ============================================================
-
-  double OcTreeNode::getMeanChildLogOdds() const{
-    double mean = 0;
-    char c = 0;
-    for (unsigned int i=0; i<8; i++) {
-      if (childExists(i)) {
-        mean += getChild(i)->getOccupancy();
-        c++;
-      }
-    }
-    if (c)
-      mean /= (double) c;
-
-    return log(mean/(1-mean));
+  template <bool COPY_ON_WRITE>
+  void CoWPolicy<COPY_ON_WRITE>::ref()
+  {
+    // No-op.
   }
 
-  float OcTreeNode::getMaxChildLogOdds() const{
-    float max = -std::numeric_limits<float>::max();
-    for (unsigned int i=0; i<8; i++) {
-      if (childExists(i)) {
-        float l = getChild(i)->getLogOdds();
-        if (l > max)
-          max = l;
-      }
-    }
-    return max;
+  template <bool COPY_ON_WRITE>
+  bool CoWPolicy<COPY_ON_WRITE>::deref() {
+    return true;
   }
 
-  void OcTreeNode::addValue(const float& logOdds) {
-    value += logOdds;
-  }
-  
-} // end namespace
-
-
+}

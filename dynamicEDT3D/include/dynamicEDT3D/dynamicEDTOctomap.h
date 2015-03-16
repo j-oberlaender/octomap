@@ -51,7 +51,7 @@ public:
      *
      *  The distance map is maintained in a full three-dimensional array, i.e., there exists a float field in memory for every voxel inside the bounding box given by bbxMin and bbxMax. Consider this when computing distance maps for large octomaps, they will use much more memory than the octomap itself!
      */
-	DynamicEDTOctomap(float maxdist, octomap::OcTree* _octree, octomap::point3d bbxMin, octomap::point3d bbxMax, bool treatUnknownAsOccupied);
+	DynamicEDTOctomap(float maxdist, octomap::OcTree<>* _octree, octomap::point3d bbxMin, octomap::point3d bbxMax, bool treatUnknownAsOccupied);
 
 	virtual ~DynamicEDTOctomap();
 
@@ -111,7 +111,7 @@ private:
 	void mapToWorld(int x, int y, int z, octomap::point3d &p) const;
 	void mapToWorld(int x, int y, int z, octomap::OcTreeKey &key) const;
 
-	octomap::OcTree* octree;
+	octomap::OcTree<>* octree;
 	bool unknownOccupied;
 	int treeDepth;
 	double treeResolution;

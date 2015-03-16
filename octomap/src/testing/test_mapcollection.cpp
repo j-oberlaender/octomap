@@ -8,8 +8,8 @@ using namespace std;
 using namespace octomap;
 using namespace octomath;
 
-OcTree* generateSphereTree(point3d origin, float radius){
-	OcTree* tree = new OcTree(0.05);
+OcTree<>* generateSphereTree(point3d origin, float radius){
+	OcTree<>* tree = new OcTree<>(0.05);
 
 	point3d point_on_surface = origin;
 	point_on_surface.x() += radius;
@@ -50,7 +50,7 @@ int main(int argc, char** argv) {
 
   //Read MapCollection from command line
   std::string filename(argv[1]);
-  MapCollection<MapNode<OcTree> > collection(filename);
+  MapCollection<MapNode<OcTree<> > > collection(filename);
   EXPECT_TRUE(collection.size() > 0);
 
   //Write it to file

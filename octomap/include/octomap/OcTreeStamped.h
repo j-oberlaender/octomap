@@ -42,12 +42,13 @@
 namespace octomap {
   
   // node definition
-  class OcTreeNodeStamped : public OcTreeNode {    
+  template <bool COPY_ON_WRITE=false>
+  class OcTreeNodeStamped : public OcTreeNode<COPY_ON_WRITE> {    
 
   public:
-    OcTreeNodeStamped() : OcTreeNode(), timestamp(0) {}
+    OcTreeNodeStamped() : OcTreeNode<COPY_ON_WRITE>(), timestamp(0) {}
 
-    OcTreeNodeStamped(const OcTreeNodeStamped& rhs) : OcTreeNode(rhs), timestamp(rhs.timestamp) {}
+    OcTreeNodeStamped(const OcTreeNodeStamped& rhs) : OcTreeNode<COPY_ON_WRITE>(rhs), timestamp(rhs.timestamp) {}
 
     bool operator==(const OcTreeNodeStamped& rhs) const{
       return (rhs.value == value && rhs.timestamp == timestamp);
@@ -55,13 +56,17 @@ namespace octomap {
     
     // children
     inline OcTreeNodeStamped* getChild(unsigned int i) {
-      return static_cast<OcTreeNodeStamped*> (OcTreeNode::getChild(i));
+      return static_cast<OcTreeNodeStamped*> (OcTreeNode<COPY_ON_WRITE>::getChild(i));
+    }
+    inline const OcTreeNodeStamped* getConstChild(unsigned int i) const {
+      return static_cast<const OcTreeNodeStamped*> (OcTreeNode<COPY_ON_WRITE>::getConstChild(i));
     }
     inline const OcTreeNodeStamped* getChild(unsigned int i) const {
-      return static_cast<const OcTreeNodeStamped*> (OcTreeNode::getChild(i));
+      return getConstChild(i);
     }
 
     bool createChild(unsigned int i) {
+      assert (this->unique());
       if (children == NULL) allocChildren();
       children[i] = new OcTreeNodeStamped();
       return true;
@@ -74,25 +79,33 @@ namespace octomap {
 
     // update occupancy and timesteps of inner nodes 
     inline void updateOccupancyChildren() {      
+      assert (this->unique());
       this->setLogOdds(this->getMaxChildLogOdds());  // conservative
       updateTimestamp();
     }
 
+    using OcTreeNode<COPY_ON_WRITE>::childExists;
+
   protected:
+    using OcTreeNode<COPY_ON_WRITE>::value;
+    using OcTreeNode<COPY_ON_WRITE>::children;
+    using OcTreeNode<COPY_ON_WRITE>::allocChildren;
+
     unsigned int timestamp;
   };
 
 
   // tree definition
-  class OcTreeStamped : public OccupancyOcTreeBase <OcTreeNodeStamped> {    
+  template <bool COPY_ON_WRITE=false>
+  class OcTreeStamped : public OccupancyOcTreeBase <OcTreeNodeStamped<COPY_ON_WRITE> > {    
 
   public:
     /// Default constructor, sets resolution of leafs
-    OcTreeStamped(double resolution) : OccupancyOcTreeBase<OcTreeNodeStamped>(resolution) {};    
+    OcTreeStamped(double resolution) : OccupancyOcTreeBase<OcTreeNodeStamped<COPY_ON_WRITE> >(resolution) {};    
       
     /// virtual constructor: creates a new object of same type
     /// (Covariant return type requires an up-to-date compiler)
-    OcTreeStamped* create() const {return new OcTreeStamped(resolution); }
+    OcTreeStamped<COPY_ON_WRITE>* create() const {return new OcTreeStamped<COPY_ON_WRITE>(this->resolution); }
 
     std::string getTreeType() const {return "OcTreeStamped";}
 
@@ -101,26 +114,35 @@ namespace octomap {
 
     void degradeOutdatedNodes(unsigned int time_thres);
     
-    virtual void updateNodeLogOdds(OcTreeNodeStamped* node, const float& update) const;
-    void integrateMissNoTime(OcTreeNodeStamped* node) const;
-
-  protected:
-    /**
-     * Static member object which ensures that this OcTree's prototype
-     * ends up in the classIDMapping only once
-     */
-    class StaticMemberInitializer{
-    public:
-      StaticMemberInitializer() {
-        OcTreeStamped* tree = new OcTreeStamped(0.1);
-        AbstractOcTree::registerTreeType(tree);
-      }
-    };
-    /// to ensure static initialization (only once)
-    static StaticMemberInitializer ocTreeStampedMemberInit;
-    
+    virtual void updateNodeLogOdds(OcTreeNodeStamped<COPY_ON_WRITE>* node, const float& update) const;
+    void integrateMissNoTime(OcTreeNodeStamped<COPY_ON_WRITE>* node) const;
   };
 
+  namespace {
+
+    class OcTreeStampedStaticInit : public AbstractOcTree{
+    protected:
+      /**
+       * Static member object which ensures that this OcTree's prototype
+       * ends up in the classIDMapping only once
+       */
+      class StaticMemberInitializer{
+      public:
+        StaticMemberInitializer() {
+          OcTreeStamped<false>* ftree = new OcTreeStamped<false>(0.1);
+          OcTreeStamped<true>*  ttree = new OcTreeStamped<true>(0.1);
+          AbstractOcTree::registerTreeType(false, ftree);
+          AbstractOcTree::registerTreeType(true,  ttree);
+        }
+      };
+      /// to ensure static initialization (only once)
+      static StaticMemberInitializer ocTreeMemberInit;
+    };
+
+  }
+
 } // end namespace
+
+#include "octomap/OcTreeStamped.hxx"
 
 #endif

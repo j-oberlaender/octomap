@@ -98,7 +98,7 @@ int main(int argc, char** argv) {
     EXPECT_FLOAT_EQ(l, logodds(probability(l)));
 
 
-    OcTree tree (0.05);
+    OcTree<> tree (0.05);
     tree.setProbHit(0.7);
     tree.setProbMiss(0.4);
 
@@ -137,7 +137,7 @@ int main(int argc, char** argv) {
       point_on_surface.rotate_IP (0,DEG2RAD(1.),0);
     }
   
-    OcTree tree (0.05);
+    OcTree<> tree (0.05);
     tree.insertPointCloud(*measurement, origin);
     EXPECT_EQ (tree.size(), 53959);
 
@@ -154,7 +154,7 @@ int main(int argc, char** argv) {
   // ------------------------------------------------------------
 
   } else if (test_name == "StampedTree") {
-    OcTreeStamped stamped_tree (0.05);
+    OcTreeStamped<> stamped_tree (0.05);
     // fill tree
     for (int x=-20; x<20; x++) 
       for (int y=-20; y<20; y++) 
@@ -164,7 +164,7 @@ int main(int argc, char** argv) {
         }
     // test if update times set
     point3d query (0.1f, 0.1f, 0.1f);
-    OcTreeNodeStamped* result = stamped_tree.search (query);
+    OcTreeNodeStamped<>* result = stamped_tree.search (query);
     EXPECT_TRUE (result);
     unsigned int tree_time = stamped_tree.getLastUpdateTime();
     unsigned int node_time = result->getTimestamp();
@@ -180,7 +180,7 @@ int main(int argc, char** argv) {
     EXPECT_EQ  (node_time, result->getTimestamp()); // node time updated?
     point3d query2 = point3d  (0.1f, 0.1f, 0.3f);
     stamped_tree.updateNode(query2, true); // integrate 'occupied' measurement
-    OcTreeNodeStamped* result2 = stamped_tree.search (query2);
+    OcTreeNodeStamped<>* result2 = stamped_tree.search (query2);
     EXPECT_TRUE (result2);
     result = stamped_tree.search (query);
     EXPECT_TRUE (result);
@@ -190,7 +190,7 @@ int main(int argc, char** argv) {
     EXPECT_EQ(result2->getTimestamp(), stamped_tree.getLastUpdateTime());
   // ------------------------------------------------------------
   } else if (test_name == "OcTreeKey") {
-    OcTree tree (0.05);  
+    OcTree<> tree (0.05);  
     point3d p(0.0,0.0,0.0);
     OcTreeKey key;
     tree.coordToKeyChecked(p, key);

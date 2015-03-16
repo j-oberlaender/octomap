@@ -35,14 +35,16 @@ namespace octomap {
     ColorOcTreeDrawer();
     virtual ~ColorOcTreeDrawer();
 
-    virtual void setOcTree(const AbstractOcTree& tree_pnt, const pose6d& origin, int map_id_);
+    virtual void setOcTree(const AbstractOcTree& tree, const pose6d& origin, int map_id_);
 
-  protected:
-    
-    
+  private:
+    template <bool COPY_ON_WRITE>
+    void setOcTreeInternal(const ColorOcTree<COPY_ON_WRITE>& octree, const octomap::pose6d& origin, int map_id_);
   };
 
 
 } // end namespace
+
+#include "octovis/ColorOcTreeDrawer.hxx"
 
 #endif

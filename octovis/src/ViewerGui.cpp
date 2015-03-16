@@ -182,11 +182,11 @@ void ViewerGui::addOctree(octomap::AbstractOcTree* tree, int id, octomap::pose6d
       if (foundRecord && r->octree->getTreeType().compare(tree->getTreeType()) !=0){
         // delete old drawer, create new
         delete r->octree_drawer;
-        if (dynamic_cast<OcTree*>(tree)) {
+        if (dynamic_cast<OcTree<>*>(tree)) {
           r->octree_drawer = new OcTreeDrawer();
           //        fprintf(stderr, "adding new OcTreeDrawer for node %d\n", id);
         }
-        else if (dynamic_cast<ColorOcTree*>(tree)) {
+        else if (dynamic_cast<ColorOcTree<>*>(tree)) {
           r->octree_drawer = new ColorOcTreeDrawer();
         } else{
           OCTOMAP_ERROR("Could not create drawer for tree type %s\n", tree->getTreeType().c_str());
@@ -206,11 +206,11 @@ void ViewerGui::addOctree(octomap::AbstractOcTree* tree, int id, octomap::pose6d
         // add new record
         OcTreeRecord otr;
         otr.id = id;
-        if (dynamic_cast<OcTree*>(tree)) {
+        if (dynamic_cast<OcTree<>*>(tree)) {
           otr.octree_drawer = new OcTreeDrawer();
           //        fprintf(stderr, "adding new OcTreeDrawer for node %d\n", id);
         }
-        else if (dynamic_cast<ColorOcTree*>(tree)) {
+        else if (dynamic_cast<ColorOcTree<>*>(tree)) {
           otr.octree_drawer = new ColorOcTreeDrawer();
         } else{
           OCTOMAP_ERROR("Could not create drawer for tree type %s\n", tree->getTreeType().c_str());
@@ -307,7 +307,7 @@ void ViewerGui::generateOctree() {
     std::cerr << std::endl;
 
     //if (m_ocTree) delete m_ocTree;
-    OcTree* tree = new octomap::OcTree(m_octreeResolution);
+    OcTree<>* tree = new octomap::OcTree<>(m_octreeResolution);
 
     octomap::ScanGraph::iterator it;
     unsigned numScans = m_scanGraph->size();
@@ -344,7 +344,7 @@ void ViewerGui::gotoFirstScan(){
 
     // if (m_ocTree) delete m_ocTree;
     // m_ocTree = new octomap::OcTree(m_octreeResolution);
-    OcTree* tree = new octomap::OcTree(m_octreeResolution);
+    OcTree<>* tree = new octomap::OcTree<>(m_octreeResolution);
     this->addOctree(tree, DEFAULT_OCTREE_ID);
 
     addNextScan();
@@ -367,7 +367,7 @@ void ViewerGui::addNextScan(){
         return;
       }
       // not used with ColorOcTrees, omitting casts
-      ((OcTree*) r->octree)->insertPointCloud(**m_nextScanToAdd, m_laserMaxRange);
+      ((OcTree<>*) r->octree)->insertPointCloud(**m_nextScanToAdd, m_laserMaxRange);
       m_nextScanToAdd++;
     }
 
@@ -472,7 +472,7 @@ void ViewerGui::setOcTreeUISwitches() {
 }
 
 void ViewerGui::openTree(){
-  OcTree* tree = new octomap::OcTree(m_filename);
+  OcTree<>* tree = new octomap::OcTree<>(m_filename);
   this->addOctree(tree, DEFAULT_OCTREE_ID);
 
   m_octreeResolution = tree->getResolution();
@@ -521,12 +521,12 @@ void ViewerGui::openMapCollection() {
   }
   infile.close();
 
-  MapCollection<MapNode<OcTree> > collection(m_filename);
+  MapCollection<MapNode<OcTree<> > > collection(m_filename);
   int i=0;
-  for (MapCollection<MapNode<OcTree> >::iterator it = collection.begin();
+  for (MapCollection<MapNode<OcTree<> > >::iterator it = collection.begin();
       it != collection.end(); ++it) {
     OCTOMAP_DEBUG("Adding hierarchy node %s\n", (*it)->getId().c_str());
-    OcTree* tree = (*it)->getMap();
+    OcTree<>* tree = (*it)->getMap();
     if (!tree)
       OCTOMAP_ERROR("Error while reading node %s\n", (*it)->getId().c_str());
     else {
@@ -571,7 +571,7 @@ void ViewerGui::loadGraph(bool completeGraph) {
 
     //if (m_ocTree) delete m_ocTree;
     //m_ocTree = new octomap::OcTree(m_octreeResolution);
-    OcTree* tree = new octomap::OcTree(m_octreeResolution);
+    OcTree<>* tree = new octomap::OcTree<>(m_octreeResolution);
     this->addOctree(tree, DEFAULT_OCTREE_ID);
 
     addNextScan();
@@ -799,10 +799,10 @@ void ViewerGui::on_actionDelete_nodes_in_selection_triggered(){
   m_glwidget->selectionBox().getBBXMax(max.x(), max.y(), max.z());
 
   for (std::map<int, OcTreeRecord>::iterator t_it = m_octrees.begin(); t_it != m_octrees.end(); ++t_it) {
-    OcTree* octree = dynamic_cast<OcTree*>(t_it->second.octree);
+    OcTree<>* octree = dynamic_cast<OcTree<>*>(t_it->second.octree);
 
     if (octree){
-      for(OcTree::leaf_bbx_iterator it = octree->begin_leafs_bbx(min,max),
+      for(OcTree<>::leaf_bbx_iterator it = octree->begin_leafs_bbx(min,max),
           end=octree->end_leafs_bbx(); it!= end; ++it){
         octree->deleteNode(it.getKey(), it.getDepth());
       }
@@ -822,7 +822,7 @@ void ViewerGui::on_actionDelete_nodes_outside_of_selection_triggered(){
   m_glwidget->selectionBox().getBBXMax(max.x(), max.y(), max.z());
 
   for (std::map<int, OcTreeRecord>::iterator t_it = m_octrees.begin(); t_it != m_octrees.end(); ++t_it) {
-    OcTree* octree = dynamic_cast<OcTree*>(t_it->second.octree);
+    OcTree<>* octree = dynamic_cast<OcTree<>*>(t_it->second.octree);
 
     if (octree){
       octomap::OcTreeKey minKey, maxKey;
@@ -831,7 +831,7 @@ void ViewerGui::on_actionDelete_nodes_outside_of_selection_triggered(){
         return;
       }
 
-      for(OcTree::leaf_iterator it = octree->begin_leafs(),
+      for(OcTree<>::leaf_iterator it = octree->begin_leafs(),
           end=octree->end_leafs(); it!= end; ++it){
         // check if outside of bbx:
         OcTreeKey k = it.getKey();
@@ -851,7 +851,7 @@ void ViewerGui::on_actionDelete_nodes_outside_of_selection_triggered(){
 
 void ViewerGui::updateNodesInBBX(const point3d& min, const point3d& max, bool occupied){
   for (std::map<int, OcTreeRecord>::iterator t_it = m_octrees.begin(); t_it != m_octrees.end(); ++t_it) {
-    OcTree* octree = dynamic_cast<OcTree*>(t_it->second.octree);
+    OcTree<>* octree = dynamic_cast<OcTree<>*>(t_it->second.octree);
 
     if (octree){
       float logodds;
@@ -860,7 +860,7 @@ void ViewerGui::updateNodesInBBX(const point3d& min, const point3d& max, bool oc
       else
         logodds = octree->getClampingThresMinLog();
 
-      for(OcTree::leaf_bbx_iterator it = octree->begin_leafs_bbx(min,max),
+      for(OcTree<>::leaf_bbx_iterator it = octree->begin_leafs_bbx(min,max),
           end=octree->end_leafs_bbx(); it!= end; ++it)
       {
         // directly set values of leafs:
@@ -882,7 +882,7 @@ void ViewerGui::updateNodesInBBX(const point3d& min, const point3d& max, bool oc
 
 void ViewerGui::setNodesInBBX(const point3d& min, const point3d& max, bool occupied){
   for (std::map<int, OcTreeRecord>::iterator t_it = m_octrees.begin(); t_it != m_octrees.end(); ++t_it) {
-    OcTree* octree = dynamic_cast<OcTree*>(t_it->second.octree);
+    OcTree<>* octree = dynamic_cast<OcTree<>*>(t_it->second.octree);
 
     if (octree){
       float logodds = octree->getClampingThresMaxLog() - octree->getClampingThresMinLog();
@@ -910,7 +910,7 @@ void ViewerGui::setNodesInBBX(const point3d& min, const point3d& max, bool occup
 
 void ViewerGui::setNonNodesInBBX(const point3d& min, const point3d& max, bool occupied) {
   for (std::map<int, OcTreeRecord>::iterator t_it = m_octrees.begin(); t_it != m_octrees.end(); ++t_it) {
-    OcTree* octree = dynamic_cast<OcTree*>(t_it->second.octree);
+    OcTree<>* octree = dynamic_cast<OcTree<>*>(t_it->second.octree);
 
     if (octree){
       float logodds = octree->getClampingThresMaxLog() - octree->getClampingThresMinLog();
@@ -925,7 +925,7 @@ void ViewerGui::setNonNodesInBBX(const point3d& min, const point3d& max, bool oc
       for (k[0] = minKey[0]; k[0] < maxKey[0]; ++k[0]){
         for (k[1] = minKey[1]; k[1] < maxKey[1]; ++k[1]){
           for (k[2] = minKey[2]; k[2] < maxKey[2]; ++k[2]){
-            OcTreeNode* n = octree->search(k);
+            OcTreeNode<>* n = octree->search(k);
             if(!n)
               octree->updateNode(k, logodds);
           }
@@ -1075,11 +1075,11 @@ void ViewerGui::on_actionConvert_ml_tree_triggered(){
     for (std::map<int, OcTreeRecord>::iterator it = m_octrees.begin();
         it != m_octrees.end(); ++it) {
       AbstractOcTree* t = it->second.octree;
-      if (dynamic_cast<OcTree*>(t)) {
-        ((OcTree*) t)->toMaxLikelihood();
+      if (dynamic_cast<OcTree<>*>(t)) {
+        ((OcTree<>*) t)->toMaxLikelihood();
       }
-      else if (dynamic_cast<OcTree*>(t)) {
-        ((ColorOcTree*) t)->toMaxLikelihood();
+      else if (dynamic_cast<ColorOcTree<>*>(t)) {
+        ((ColorOcTree<>*) t)->toMaxLikelihood();
       }
     }
     showInfo("Done.", true);

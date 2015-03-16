@@ -2,8 +2,8 @@
  * OctoMap - An Efficient Probabilistic 3D Mapping Framework Based on Octrees
  * http://octomap.github.com/
  *
- * Copyright (c) 2009-2013, R. Schmitt, K.M. Wurm and A. Hornung,
- * University of Freiburg. All rights reserved.
+ * Copyright (c) 2009-2013, K.M. Wurm and A. Hornung, University of Freiburg
+ * All rights reserved.
  * License: New BSD
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,10 +31,16 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <octomap/CountingOcTree.h>
+#include <octomap/OcTree.h>
+
 
 namespace octomap {
 
-  CountingOcTreeStaticInit::StaticMemberInitializer CountingOcTreeStaticInit::ocTreeMemberInit;
+  template <bool COPY_ON_WRITE>
+  OcTree<COPY_ON_WRITE>::OcTree(std::string _filename)
+    : OccupancyOcTreeBase<OcTreeNode<COPY_ON_WRITE> > (0.1)  { // resolution will be set according to tree file
+    this->readBinary(_filename);
+  }
 
-}
+
+} // namespace

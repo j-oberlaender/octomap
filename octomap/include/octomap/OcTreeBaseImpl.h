@@ -69,7 +69,7 @@ namespace octomap {
    *    AbstractOcTree or AbstractOccupancyOcTree
    */
   template <class NODE,class INTERFACE>
-  class OcTreeBaseImpl : public INTERFACE {
+  class OcTreeBaseImpl : public INTERFACE, public NODE::ThisOcTreeCoWPolicy {
 
   public:
     /// Make the templated NODE type available from the outside
@@ -114,28 +114,43 @@ namespace octomap {
      * should not be modified or deleted externally, the OcTree
      * manages its memory itself. In an empty tree, root is NULL.
      */
-    inline NODE* getRoot() const { return root; }
+    inline NODE* getRoot() { NODE::ThisOcTreeCoWPolicy::makeUnique(&root); return root; }
+    inline const NODE* getRootConst() const { return root; }
+    inline const NODE* getRoot() const { return root; }
 
     /** 
      *  Search node at specified depth given a 3d point (depth=0: search full tree depth).
      *  You need to check if the returned node is NULL, since it can be in unknown space.
      *  @return pointer to node if found, NULL otherwise
      */
-    NODE* search(double x, double y, double z, unsigned int depth = 0) const;
+    NODE* search(double x, double y, double z, unsigned int depth = 0);
+    const NODE* searchConst(double x, double y, double z, unsigned int depth = 0) const;
+    const NODE* search(double x, double y, double z, unsigned int depth = 0) const {
+      return searchConst(x, y, z, depth);
+    }
 
     /**
      *  Search node at specified depth given a 3d point (depth=0: search full tree depth)
      *  You need to check if the returned node is NULL, since it can be in unknown space.
      *  @return pointer to node if found, NULL otherwise
      */
-    NODE* search(const point3d& value, unsigned int depth = 0) const;
+    NODE* search(const point3d& value, unsigned int depth = 0);
+    const NODE* searchConst(const point3d& value, unsigned int depth = 0) const;
+    const NODE* search(const point3d& value, unsigned int depth = 0) const {
+      return searchConst(value, depth);
+    }
 
     /**
      *  Search a node at specified depth given an addressing key (depth=0: search full tree depth)
      *  You need to check if the returned node is NULL, since it can be in unknown space.
      *  @return pointer to node if found, NULL otherwise
      */
-    NODE* search(const OcTreeKey& key, unsigned int depth = 0) const;
+    NODE* search(const OcTreeKey& key, unsigned int depth = 0);
+    const NODE* searchConst(const OcTreeKey& key, unsigned int depth = 0) const;
+    const NODE* search(const OcTreeKey& key, unsigned int depth = 0) const {
+      return searchConst(key, depth);
+    }
+
 
     /**
      *  Delete a node (if exists) given a 3d point. Will always
@@ -181,6 +196,9 @@ namespace octomap {
     /// \return Memory usage of the complete octree in bytes (may vary between architectures)
     virtual size_t memoryUsage() const;
 
+    /// \return Memory usage of the @e unique part of the octree in bytes (may vary between architectures)
+    virtual size_t uniqueMemoryUsage() const;
+
     /// \return Memory usage of a single octree node
     virtual inline size_t memoryUsageNode() const {return sizeof(NODE); };
 
@@ -205,9 +223,16 @@ namespace octomap {
 
     /// Traverses the tree to calculate the total number of nodes
     size_t calcNumNodes() const;
+    /// Traverses the tree to calculate the total number of @e unique nodes (for copy-on-write behavior)
+    size_t calcNumUniqueNodes() const;
 
     /// Traverses the tree to calculate the total number of leaf nodes
     size_t getNumLeafNodes() const;
+    /// Traverses the tree to calculate the total number of @e unique leaf nodes (for copy-on-write behavior)
+    size_t getNumUniqueLeafNodes() const;
+
+    std::ostream& printTree(std::ostream& os) const;
+    std::ostream& printTreeRecurs(std::ostream& os, const NODE *node, size_t indent) const;
 
 
     // -- access tree nodes  ------------------
@@ -449,7 +474,9 @@ namespace octomap {
     /// recalculates min and max in x, y, z. Does nothing when tree size didn't change.
     void calcMinMax();
 
-    void calcNumNodesRecurs(NODE* node, size_t& num_nodes) const;
+    void calcNumNodesRecurs(const NODE* node, size_t& num_nodes) const;
+
+    void calcNumUniqueNodesRecurs(const NODE* node, size_t& num_nodes) const;
 
     /// recursive call of deleteNode()
     bool deleteNodeRecurs(NODE* node, unsigned int depth, unsigned int max_depth, const OcTreeKey& key);
@@ -461,6 +488,10 @@ namespace octomap {
     void expandRecurs(NODE* node, unsigned int depth, unsigned int max_depth);
     
     size_t getNumLeafNodesRecurs(const NODE* parent) const;
+
+    size_t getNumUniqueLeafNodesRecurs(const NODE* parent) const;
+
+    void makeRootUnique() { NODE::ThisOcTreeCoWPolicy::makeUnique(&root); }
 
   private:
     /// Assignment operator is private: don't (re-)assign octrees

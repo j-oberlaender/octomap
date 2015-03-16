@@ -31,71 +31,78 @@
  * POSSIBILITY OF SUCH DAMAGE.
  */
 
-#include <octomap/octomap.h>
-#include <octomap/OcTree.h>
+#include <bitset>
+#include <cassert>
+#include <math.h>
+#include <fstream>
+#include <stdlib.h>
 
-using namespace std;
-using namespace octomap;
+#include <octomap/OcTreeNode.h>
 
+namespace octomap {
 
-void print_query_info(point3d query, OcTreeNode<>* node) {
-  if (node != NULL) {
-    cout << "occupancy probability at " << query << ":\t " << node->getOccupancy() << endl;
+  template <bool COPY_ON_WRITE>
+  OcTreeNode<COPY_ON_WRITE>::OcTreeNode()
+    : OcTreeDataNode<float, COPY_ON_WRITE>(0.0)
+  {
   }
-  else 
-    cout << "occupancy probability at " << query << ":\t is unknown" << endl;    
-}
 
-int main(int argc, char** argv) {
+  template <bool COPY_ON_WRITE>
+  OcTreeNode<COPY_ON_WRITE>::~OcTreeNode(){
+  }
 
-  cout << endl;
-  cout << "generating example map" << endl;
+  // TODO: Use Curiously Recurring Template Pattern instead of copying full function
+  // (same for getChild)
+  template <bool COPY_ON_WRITE>
+  bool OcTreeNode<COPY_ON_WRITE>::createChild(unsigned int i) {
+    assert (this->unique());
+    if (children == NULL) {
+      allocChildren();
+    }
+    assert (children[i] == NULL);
+    children[i] = new OcTreeNode<COPY_ON_WRITE>();
+    return true;
+  }
 
-  OcTree<> tree (0.1);  // create empty tree with resolution 0.1
+  // ============================================================
+  // =  occupancy probability  ==================================
+  // ============================================================
 
-
-  // insert some measurements of occupied cells
-
-  for (int x=-20; x<20; x++) {
-    for (int y=-20; y<20; y++) {
-      for (int z=-20; z<20; z++) {
-        point3d endpoint ((float) x*0.05f, (float) y*0.05f, (float) z*0.05f);
-        tree.updateNode(endpoint, true); // integrate 'occupied' measurement
+  template <bool COPY_ON_WRITE>
+  double OcTreeNode<COPY_ON_WRITE>::getMeanChildLogOdds() const{
+    double mean = 0;
+    char c = 0;
+    for (unsigned int i=0; i<8; i++) {
+      if (childExists(i)) {
+        mean += getChild(i)->getOccupancy();
+        c++;
       }
     }
+    if (c)
+      mean /= (double) c;
+
+    return log(mean/(1-mean));
   }
 
-  // insert some measurements of free cells
-
-  for (int x=-30; x<30; x++) {
-    for (int y=-30; y<30; y++) {
-      for (int z=-30; z<30; z++) {
-        point3d endpoint ((float) x*0.02f-1.0f, (float) y*0.02f-1.0f, (float) z*0.02f-1.0f);
-        tree.updateNode(endpoint, false);  // integrate 'free' measurement
+  template <bool COPY_ON_WRITE>
+  float OcTreeNode<COPY_ON_WRITE>::getMaxChildLogOdds() const{
+    float max = -std::numeric_limits<float>::max();
+    for (unsigned int i=0; i<8; i++) {
+      if (childExists(i)) {
+        float l = getChild(i)->getLogOdds();
+        if (l > max)
+          max = l;
       }
     }
+    return max;
   }
 
-  cout << endl;
-  cout << "performing some queries:" << endl;
+  template <bool COPY_ON_WRITE>
+  void OcTreeNode<COPY_ON_WRITE>::addValue(const float& logOdds) {
+    assert (this->unique());
+    value += logOdds;
+  }
   
-  point3d query (0., 0., 0.);
-  OcTreeNode<>* result = tree.search (query);
-  print_query_info(query, result);
-
-  query = point3d(-1.,-1.,-1.);
-  result = tree.search (query);
-  print_query_info(query, result);
-
-  query = point3d(1.,1.,1.);
-  result = tree.search (query);
-  print_query_info(query, result);
+} // end namespace
 
 
-  cout << endl;
-  tree.writeBinary("simple_tree.bt");
-  cout << "wrote example file simple_tree.bt" << endl << endl;
-  cout << "now you can use octovis to visualize: octovis simple_tree.bt"  << endl;
-  cout << "Hint: hit 'F'-key in viewer to see the freespace" << endl  << endl;  
-
-}

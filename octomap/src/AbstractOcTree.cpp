@@ -71,7 +71,7 @@ namespace octomap {
     return true;
   }
 
-  AbstractOcTree* AbstractOcTree::read(const std::string& filename){
+  AbstractOcTree* AbstractOcTree::read(const std::string& filename, bool copy_on_write){
     std::ifstream file(filename.c_str(), std::ios_base::in |std::ios_base::binary);
 
     if (!file.is_open()){
@@ -79,12 +79,12 @@ namespace octomap {
       return NULL;
     } else {
       // TODO: check is_good of finished stream, warn?
-      return read(file);
+      return read(file, copy_on_write);
     }
   }
 
 
-  AbstractOcTree* AbstractOcTree::read(std::istream &s){
+  AbstractOcTree* AbstractOcTree::read(std::istream &s, bool copy_on_write){
 
     // check if first line valid:
     std::string line;
@@ -104,7 +104,7 @@ namespace octomap {
     // otherwise: values are valid, stream is now at binary data!
     OCTOMAP_DEBUG_STR("Reading octree type "<< id);
 
-    AbstractOcTree* tree = createTree(id, res);
+    AbstractOcTree* tree = createTree(id, res, copy_on_write);
 
     if (tree){
       if (size > 0)
@@ -181,29 +181,36 @@ namespace octomap {
 
   }
 
-  AbstractOcTree* AbstractOcTree::createTree(const std::string class_name, double res){
-    std::map<std::string, AbstractOcTree*>::iterator it = classIDMapping().find(class_name);
+  AbstractOcTree* AbstractOcTree::createTree(const std::string class_name, double res, bool copy_on_write){
+    ClassIDMapping::iterator it = classIDMapping().find(class_name);
     if (it == classIDMapping().end()){
       OCTOMAP_ERROR("Could not create octree of type %s, not in store in classIDMapping\n", class_name.c_str());
       return NULL;
     } else {
-      AbstractOcTree* tree = it->second->create();
+      AbstractOcTree* tree = copy_on_write ? it->second.second->create() : it->second.first->create();
 
       tree->setResolution(res);
       return tree;
     }
   }
 
-  std::map<std::string, AbstractOcTree*>& AbstractOcTree::classIDMapping(){
+  AbstractOcTree::ClassIDMapping& AbstractOcTree::classIDMapping(){
     // we will "leak" the memory of the map and all trees until program exits,
     // but this ensures all static objects are there as long as needed
     // http://www.parashift.com/c++-faq-lite/ctors.html#faq-10.15
-    static std::map<std::string, AbstractOcTree*>* map = new std::map<std::string, AbstractOcTree*>();
+    static ClassIDMapping* map = new ClassIDMapping();
     return *map;
   }
 
-  void AbstractOcTree::registerTreeType(AbstractOcTree* tree){
-    classIDMapping()[tree->getTreeType()] = tree;
+  void AbstractOcTree::registerTreeType(bool copy_on_write, AbstractOcTree* tree){
+    if (classIDMapping().find(tree->getTreeType()) == classIDMapping().end()){
+      classIDMapping()[tree->getTreeType()] = ClassIDMapping::mapped_type(NULL, NULL);
+    }
+    if (copy_on_write){
+      classIDMapping()[tree->getTreeType()].second = tree;
+    } else {
+      classIDMapping()[tree->getTreeType()].first = tree;
+    }
   }
 
 

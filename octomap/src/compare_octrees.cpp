@@ -67,8 +67,8 @@ int main(int argc, char** argv) {
 
   cout << "\nReading octree files...\n";
 
-  OcTree* tree1 = dynamic_cast<OcTree*>(OcTree::read(filename1));
-  OcTree* tree2 = dynamic_cast<OcTree*>(OcTree::read(filename2));
+  OcTree<>* tree1 = dynamic_cast<OcTree<>*>(OcTree<>::read(filename1));
+  OcTree<>* tree2 = dynamic_cast<OcTree<>*>(OcTree<>::read(filename2));
 
   if (fabs(tree1->getResolution()-tree2->getResolution()) > 1e-6){
     OCTOMAP_ERROR("Error: Tree resolutions don't match!");
@@ -103,10 +103,10 @@ int main(int argc, char** argv) {
 
   double kld_sum = 0.0;
   cout << "Comparing trees... \n";
-  for (OcTree::leaf_iterator it = tree1->begin_leafs(),
+  for (OcTree<>::leaf_iterator it = tree1->begin_leafs(),
       end = tree1->end_leafs();  it != end; ++it)
   {
-    OcTreeNode* n = tree2->search(it.getKey());
+    OcTreeNode<>* n = tree2->search(it.getKey());
     if (!n){
       OCTOMAP_ERROR("Could not find coordinate of 1st octree in 2nd octree\n");
     } else{

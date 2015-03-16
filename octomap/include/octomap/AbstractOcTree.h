@@ -44,12 +44,19 @@ namespace octomap {
 
   /**
    * This abstract class is an interface to all octrees and provides a
-   * factory design pattern for readin and writing all kinds of OcTrees
+   * factory design pattern for reading and writing all kinds of OcTrees
    * to files (see read()).
    */
   class AbstractOcTree {
     friend class StaticMapInit;
   public:
+    /**
+     * Class ID mapping datatype.  For every class ID we store a pair
+     * of reference objects -- the first entry for "classic" OcTrees,
+     * the second entry for copy-on-write OcTrees.
+     */
+    typedef std::map<std::string, std::pair<AbstractOcTree*, AbstractOcTree*> > ClassIDMapping;
+
     AbstractOcTree();
     virtual ~AbstractOcTree() {};
 
@@ -113,9 +120,10 @@ namespace octomap {
      *
      * @param id unique ID of OcTree
      * @param res resolution of OcTree
+     * @param copy_on_write if @c true, create a tree with copy-on-write policy
      * @return pointer to newly created OcTree (empty). NULL if the ID is unknown!
      */
-    static AbstractOcTree* createTree(const std::string id, double res);
+    static AbstractOcTree* createTree(const std::string id, double res, bool copy_on_write=false);
 
     /**
      * Read the file header, create the appropriate class and deserialize.
@@ -127,11 +135,11 @@ namespace octomap {
      *
      * @endcode
      */
-    static AbstractOcTree* read(const std::string& filename);
+    static AbstractOcTree* read(const std::string& filename, bool copy_on_write=false);
 
     /// Read the file header, create the appropriate class and deserialize.
     /// This creates a new octree which you need to delete yourself.
-    static AbstractOcTree* read(std::istream &s);
+    static AbstractOcTree* read(std::istream &s, bool copy_on_write=false);
 
     /**
      * Read all nodes from the input stream (without file header),
@@ -146,11 +154,11 @@ namespace octomap {
     virtual std::ostream& writeData(std::ostream &s) const = 0;
   private:
     /// create private store, Construct on first use
-    static std::map<std::string, AbstractOcTree*>& classIDMapping();
+    static ClassIDMapping& classIDMapping();
 
   protected:
     static bool readHeader(std::istream &s, std::string& id, unsigned& size, double& res);
-    static void registerTreeType(AbstractOcTree* tree);
+    static void registerTreeType(bool copy_on_write, AbstractOcTree* tree);
 
     static const std::string fileHeader;
   };
@@ -159,6 +167,5 @@ namespace octomap {
 
 
 } // end namespace
-
 
 #endif
