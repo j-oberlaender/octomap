@@ -1,5 +1,6 @@
 
 #include <stdio.h>
+#include <octomap/octomap_timing.h>
 #include <octomap/octomap.h>
 #include <octomap/math/Utils.h>
 #include "testing.h"
@@ -9,6 +10,16 @@ using namespace octomap;
 using namespace octomath;
 
 
+void printTreeStats(const OcTree<true>& tree, const OcTree<true>& tree_copy) {
+  cout << "Main OcTree:   " << tree.calcNumUniqueNodes() << " of " << tree.calcNumNodes() << " are unique; "
+       << tree.getNumUniqueLeafNodes() << " of " << tree.getNumLeafNodes() << " leaf nodes are unique." << endl
+       << "Copied OcTree: " << tree_copy.calcNumUniqueNodes() << " of " << tree_copy.calcNumNodes() << " are unique; "
+       << tree_copy.getNumUniqueLeafNodes() << " of " << tree_copy.getNumLeafNodes() << " leaf nodes are unique." << endl;
+}
+
+double timediff(const timeval& start, const timeval& stop){
+  return (stop.tv_sec - start.tv_sec) + 1.0e-6 *(stop.tv_usec - start.tv_usec);
+}
 
 int main(int argc, char** argv) {
 
@@ -23,10 +34,24 @@ int main(int argc, char** argv) {
     basic_tree.insertPointCloud(p, origin);
 
     OcTree<true> basic_tree_copy (basic_tree);
-    cout << "Full OcTree:   " << basic_tree.calcNumUniqueNodes() << " of " << basic_tree.calcNumNodes() << " are unique; "
-         << basic_tree.getNumUniqueLeafNodes() << " of " << basic_tree.getNumLeafNodes() << " leaf nodes are unique." << endl
-         << "Copied OcTree: " << basic_tree_copy.calcNumUniqueNodes() << " of " << basic_tree_copy.calcNumNodes() << " are unique; "
-         << basic_tree_copy.getNumUniqueLeafNodes() << " of " << basic_tree_copy.getNumLeafNodes() << " leaf nodes are unique." << endl;
+    printTreeStats(basic_tree, basic_tree_copy);
+    EXPECT_TRUE(basic_tree == basic_tree_copy);
+
+    cout << "Using some const iterators..." << endl;
+    unsigned leaf_counter = 0;
+    unsigned node_counter = 0;
+    for (OcTree<true>::const_tree_iterator it = basic_tree.cbegin_tree(), end_it = basic_tree.cend_tree();
+         it != end_it; ++it) {
+      ++node_counter;
+    }
+    for (OcTree<true>::const_iterator it = basic_tree.cbegin(), end_it = basic_tree.cend();
+         it != end_it; ++it) {
+      ++leaf_counter;
+    }
+    cout << "Counted " << node_counter << " nodes and " << leaf_counter << " leaves." << endl;
+    printTreeStats(basic_tree, basic_tree_copy);
+    EXPECT_TRUE(basic_tree.calcNumUniqueNodes() == 0);
+    EXPECT_TRUE(basic_tree_copy.calcNumUniqueNodes() == 0);
 
     point3d pt2 (-2.01f, 0.01f, 0.01f);
     cout << "Adding point at " << pt2 << " ..." << endl;
@@ -34,10 +59,43 @@ int main(int argc, char** argv) {
     p2.push_back(pt2);
     basic_tree.insertPointCloud(p2, origin);
 
-    cout << "Full OcTree:   " << basic_tree.calcNumUniqueNodes() << " of " << basic_tree.calcNumNodes() << " are unique; "
-         << basic_tree.getNumUniqueLeafNodes() << " of " << basic_tree.getNumLeafNodes() << " leaf nodes are unique." << endl
-         << "Copied OcTree: " << basic_tree_copy.calcNumUniqueNodes() << " of " << basic_tree_copy.calcNumNodes() << " are unique; "
-         << basic_tree_copy.getNumUniqueLeafNodes() << " of " << basic_tree_copy.getNumLeafNodes() << " leaf nodes are unique." << endl;
+    printTreeStats(basic_tree, basic_tree_copy);
+
+    cout << "Copying again..." << endl;
+    // Yes, this is ugly. So sue me.
+    basic_tree_copy.~OcTree<true>();
+    new (&basic_tree_copy) OcTree<true>(basic_tree);
+
+    EXPECT_TRUE(basic_tree == basic_tree_copy);
+    printTreeStats(basic_tree, basic_tree_copy);
+
+    cout << "Using non-const iterator..." << endl;
+    leaf_counter = 0;
+    OcTree<true>::const_iterator cit = basic_tree_copy.cbegin(), end_cit = basic_tree_copy.cend();
+    for (OcTree<true>::const_iterator it = basic_tree.cbegin(), end_it = basic_tree.cend();
+         it != end_it; ++it, ++cit) {
+      EXPECT_TRUE(cit->getLogOdds() == it->getLogOdds());
+    }
+    cit = basic_tree_copy.cbegin(); end_cit = basic_tree_copy.cend();
+    for (OcTree<true>::iterator it = basic_tree.begin(), end_it = basic_tree.end();
+         it != end_it; ++it, ++cit) {
+      ++leaf_counter;
+      float clo = cit->getLogOdds();
+      it->setLogOdds(0.357); // This should leave a trace!
+      EXPECT_TRUE(clo == cit->getLogOdds());
+      EXPECT_TRUE(clo != it->getLogOdds());
+    }
+    cit = basic_tree_copy.cbegin(); end_cit = basic_tree_copy.cend();
+    for (OcTree<true>::const_iterator it = basic_tree.cbegin(), end_it = basic_tree.cend();
+         it != end_it; ++it, ++cit) {
+      EXPECT_TRUE(cit->getLogOdds() != it->getLogOdds());
+    }
+    EXPECT_TRUE(!(basic_tree == basic_tree_copy));
+    cout << "Counted " << leaf_counter << " leaves." << endl;
+    printTreeStats(basic_tree, basic_tree_copy);
+
+    EXPECT_TRUE(basic_tree.calcNumUniqueNodes() == basic_tree.calcNumNodes());
+    EXPECT_TRUE(basic_tree_copy.calcNumUniqueNodes() == basic_tree_copy.calcNumNodes());
   }
 
 
@@ -142,10 +200,7 @@ int main(int argc, char** argv) {
   EXPECT_TRUE(single_beams_copy.calcNumUniqueNodes() == 0);
   unsigned int nodes_in_copy = single_beams_copy.calcNumNodes();
 
-  cout << "Full OcTree:   " << single_beams.calcNumUniqueNodes() << " of " << single_beams.calcNumNodes() << " are unique; "
-       << single_beams.getNumUniqueLeafNodes() << " of " << single_beams.getNumLeafNodes() << " leaf nodes are unique." << endl
-       << "Copied OcTree: " << single_beams_copy.calcNumUniqueNodes() << " of " << single_beams_copy.calcNumNodes() << " are unique; "
-       << single_beams_copy.getNumUniqueLeafNodes() << " of " << single_beams_copy.getNumLeafNodes() << " leaf nodes are unique." << endl;
+  printTreeStats(single_beams, single_beams_copy);
 
   cout << "generating second half of single rays..." << endl;
   for (int i=num_beams/2; i<num_beams; i++) {
@@ -157,12 +212,8 @@ int main(int argc, char** argv) {
     }
     single_endpoint.rotate_IP (0,DEG2RAD(360.0/num_beams),0);
   }
-  cout << "Full OcTree:   " << single_beams.calcNumUniqueNodes() << " of " << single_beams.calcNumNodes() << " are unique; "
-       << single_beams.getNumUniqueLeafNodes() << " of " << single_beams.getNumLeafNodes() << " leaf nodes are unique." << endl
-       << "               " << single_beams.memoryUsage() << " bytes used." << endl
-       << "Copied OcTree: " << single_beams_copy.calcNumUniqueNodes() << " of " << single_beams_copy.calcNumNodes() << " are unique; "
-       << single_beams_copy.getNumUniqueLeafNodes() << " of " << single_beams_copy.getNumLeafNodes() << " leaf nodes are unique." << endl
-       << "               " << single_beams_copy.uniqueMemoryUsage() << " bytes used uniquely (vs. " << single_beams_copy.memoryUsage() << " for the whole tree)." << endl;
+  printTreeStats(single_beams, single_beams_copy);
+  cout << "Copied OcTree: " << single_beams_copy.uniqueMemoryUsage() << " bytes used uniquely (vs. " << single_beams_copy.memoryUsage() << " for the whole tree)." << endl;
 
   EXPECT_TRUE(single_beams_copy.calcNumNodes() == nodes_in_copy);
   cout << "writing to beams_cow.bt..." << endl;
@@ -248,6 +299,99 @@ int main(int argc, char** argv) {
   double dist = (origin - end).norm();
   EXPECT_NEAR(0.9, dist, res);
 
+
+  // -----------------------------------------------
+
+  timeval start;
+  timeval stop;
+  unsigned ray_beams = 180;
+  {
+    cout << "OcTree<false>: generating rays..." << endl;
+    OcTree<false> tree(0.05);
+    float beamLength = 10.0f;
+    point3d origin (1.0f, 0.45f, 0.45f);
+    point3d origin_top (1.0f, 0.45f, 1.0);
+    point3d endpoint(beamLength, 0.0f, 0.0f);
+
+    gettimeofday(&start, NULL);  // start timer
+    for (unsigned int i=0; i<ray_beams; i++) {
+      for (unsigned int j=0; j<ray_beams; j++) {
+        if (!tree.insertRay(origin, origin+endpoint)) {
+          cout << "ERROR while inserting ray from " << origin << " to " << endpoint << endl;
+        }
+        endpoint.rotate_IP (0,0,DEG2RAD(360.0/ray_beams));
+      }
+      endpoint.rotate_IP (0,DEG2RAD(360.0/ray_beams),0);
+    }
+    gettimeofday(&stop, NULL);  // stop timer
+    cout << "done (" << timediff(start, stop) << " seconds)" << endl;
+
+    cout << "OcTree<false>: creating copy..." << endl;
+    gettimeofday(&start, NULL);  // start timer
+    OcTree<false> tree_copy(tree);
+    gettimeofday(&stop, NULL);  // stop timer
+    cout << "done (" << timediff(start, stop) << " seconds)" << endl;
+
+    cout << "OcTree<false>: re-generating rays after copy..." << endl;
+    endpoint = point3d(beamLength, 0.0f, 0.0f);
+
+    gettimeofday(&start, NULL);  // start timer
+    for (unsigned int i=0; i<ray_beams; i++) {
+      for (unsigned int j=0; j<ray_beams; j++) {
+        if (!tree_copy.insertRay(origin, origin+endpoint)) {
+          cout << "ERROR while inserting ray from " << origin << " to " << endpoint << endl;
+        }
+        endpoint.rotate_IP (0,0,DEG2RAD(360.0/ray_beams));
+      }
+      endpoint.rotate_IP (0,DEG2RAD(360.0/ray_beams),0);
+    }
+    gettimeofday(&stop, NULL);  // stop timer
+    cout << "done (" << timediff(start, stop) << " seconds)" << endl;
+  }
+
+  {
+    cout << "OcTree<true>: generating rays..." << endl;
+    OcTree<true> tree(0.05);
+    float beamLength = 10.0f;
+    point3d origin (1.0f, 0.45f, 0.45f);
+    point3d origin_top (1.0f, 0.45f, 1.0);
+    point3d endpoint(beamLength, 0.0f, 0.0f);
+
+    gettimeofday(&start, NULL);  // start timer
+    for (unsigned int i=0; i<ray_beams; i++) {
+      for (unsigned int j=0; j<ray_beams; j++) {
+        if (!tree.insertRay(origin, origin+endpoint)) {
+          cout << "ERROR while inserting ray from " << origin << " to " << endpoint << endl;
+        }
+        endpoint.rotate_IP (0,0,DEG2RAD(360.0/ray_beams));
+      }
+      endpoint.rotate_IP (0,DEG2RAD(360.0/ray_beams),0);
+    }
+    gettimeofday(&stop, NULL);  // stop timer
+    cout << "done (" << timediff(start, stop) << " seconds)" << endl;
+
+    cout << "OcTree<true>: creating copy..." << endl;
+    gettimeofday(&start, NULL);  // start timer
+    OcTree<true> tree_copy(tree);
+    gettimeofday(&stop, NULL);  // stop timer
+    cout << "done (" << timediff(start, stop) << " seconds)" << endl;
+
+    cout << "OcTree<true>: re-generating rays after copy..." << endl;
+    endpoint = point3d(beamLength, 0.0f, 0.0f);
+
+    gettimeofday(&start, NULL);  // start timer
+    for (unsigned int i=0; i<ray_beams; i++) {
+      for (unsigned int j=0; j<ray_beams; j++) {
+        if (!tree_copy.insertRay(origin, origin+endpoint)) {
+          cout << "ERROR while inserting ray from " << origin << " to " << endpoint << endl;
+        }
+        endpoint.rotate_IP (0,0,DEG2RAD(360.0/ray_beams));
+      }
+      endpoint.rotate_IP (0,DEG2RAD(360.0/ray_beams),0);
+    }
+    gettimeofday(&stop, NULL);  // stop timer
+    cout << "done (" << timediff(start, stop) << " seconds)" << endl;
+  }
 
   std::cout << "Test successful\n";
   return 0;
