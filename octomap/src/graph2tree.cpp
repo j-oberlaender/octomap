@@ -78,7 +78,7 @@ void calcThresholdedNodes(const OcTree<>* tree,
   num_thresholded = 0;
   num_other = 0;
 
-  for(OcTree<>::tree_iterator it = tree->begin_tree(), end=tree->end_tree(); it!= end; ++it){
+  for(OcTree<>::const_tree_iterator it = tree->begin_tree(), end=tree->end_tree(); it!= end; ++it){
     if (tree->isNodeAtThreshold(*it))
       num_thresholded++;
     else

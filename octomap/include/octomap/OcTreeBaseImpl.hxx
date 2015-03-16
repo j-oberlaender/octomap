@@ -133,10 +133,10 @@ namespace octomap {
     }
 
     // traverse all nodes, check if structure the same
-    OcTreeBaseImpl<NODE,I>::tree_iterator it = this->begin_tree();
-    OcTreeBaseImpl<NODE,I>::tree_iterator end = this->end_tree();
-    OcTreeBaseImpl<NODE,I>::tree_iterator other_it = other.begin_tree();
-    OcTreeBaseImpl<NODE,I>::tree_iterator other_end = other.end_tree();
+    OcTreeBaseImpl<NODE,I>::const_tree_iterator it = this->begin_tree();
+    OcTreeBaseImpl<NODE,I>::const_tree_iterator end = this->end_tree();
+    OcTreeBaseImpl<NODE,I>::const_tree_iterator other_it = other.begin_tree();
+    OcTreeBaseImpl<NODE,I>::const_tree_iterator other_end = other.end_tree();
 
     for (; it != end; ++it, ++other_it){
       if (other_it == other_end)
@@ -854,7 +854,7 @@ namespace octomap {
         return;
       }
 
-      for(typename OcTreeBaseImpl<NODE,I>::leaf_iterator it = this->begin(),
+      for(typename OcTreeBaseImpl<NODE,I>::const_leaf_iterator it = this->begin(),
               end=this->end(); it!= end; ++it) {
         double halfSize = it.getSize()/2.0;
         double x = it.getX() - halfSize;
@@ -882,7 +882,7 @@ namespace octomap {
         return;
       }
 
-      for(typename OcTreeBaseImpl<NODE,I>::leaf_iterator it = this->begin(),
+      for(typename OcTreeBaseImpl<NODE,I>::const_leaf_iterator it = this->begin(),
             end=this->end(); it!= end; ++it) {
         double halfSize = it.getSize()/2.0;
         double x = it.getX() + halfSize;
@@ -1054,5 +1054,23 @@ namespace octomap {
         }
       }
     }
+  }
+
+  template <class NODE,class I>
+  std::ostream& OcTreeBaseImpl<NODE,I>::printTree(std::ostream& os) const {
+    return printTreeRecurs(os, root, 0);
+  }
+
+  template <class NODE,class I>
+  std::ostream& OcTreeBaseImpl<NODE,I>::printTreeRecurs(std::ostream& os, const NODE *node, size_t indent) const {
+    if (!node)
+      return os;
+    for (size_t i=0; i<indent; ++i)
+      os << " ";
+    os << ((void*)node) << " (" << node->getRefcount() << ")\n";
+    for (unsigned int i=0; i<8; ++i)
+      if (node->childExists(i))
+        printTreeRecurs(os, node->getChild(i), indent+2);
+    return os;
   }
 }

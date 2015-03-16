@@ -43,7 +43,7 @@ namespace octomap {
     // (this is used to set up the OpenGL arrays)
     // TODO: this step may be left out, if we maintained the GLArrays in std::vectors instead...
     unsigned int cnt_occupied(0), cnt_occupied_thres(0), cnt_free(0), cnt_free_thres(0);
-    for(typename OcTree<COPY_ON_WRITE>::tree_iterator it = octree.begin_tree(this->m_max_tree_depth),
+    for(typename OcTree<COPY_ON_WRITE>::const_tree_iterator it = octree.begin_tree(this->m_max_tree_depth),
             end=octree.end_tree(); it!= end; ++it) {
       if (it.isLeaf()) { 
         if (octree.isNodeOccupied(*it)){ // occupied voxels
@@ -78,7 +78,7 @@ namespace octomap {
 
     m_grid_voxels.clear();
     OcTreeVolume voxel; // current voxel, possibly transformed 
-    for(typename OcTree<COPY_ON_WRITE>::tree_iterator it = octree.begin_tree(this->m_max_tree_depth),
+    for(typename OcTree<COPY_ON_WRITE>::const_tree_iterator it = octree.begin_tree(this->m_max_tree_depth),
             end=octree.end_tree(); it!= end; ++it) {
 
       if (it.isLeaf()) { // voxels for leaf nodes

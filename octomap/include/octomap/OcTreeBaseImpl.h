@@ -285,35 +285,84 @@ namespace octomap {
     std::ostream& writeData(std::ostream &s) const;
 
     class leaf_iterator;
+    class const_leaf_iterator;
     class tree_iterator;
+    class const_tree_iterator;
     class leaf_bbx_iterator;
+    class const_leaf_bbx_iterator;
     typedef leaf_iterator iterator;
+    typedef const_leaf_iterator const_iterator;
 
     /// @return beginning of the tree as leaf iterator
-    iterator begin(unsigned char maxDepth=0) const {return iterator(this, maxDepth);};
+    iterator begin(unsigned char maxDepth=0) {return iterator(this, maxDepth);};
     /// @return end of the tree as leaf iterator
-    const iterator end() const {return leaf_iterator_end;}; // TODO: RVE?
+    const iterator end() {return leaf_iterator_end;}; // TODO: RVE?
+    /// @return beginning of the tree as const leaf iterator
+    const_iterator cbegin(unsigned char maxDepth=0) const {return const_iterator(this, maxDepth);};
+    /// @return end of the tree as const leaf iterator
+    const const_iterator cend() const {return const_leaf_iterator_end;}; // TODO: RVE?
+    /// @return beginning of the tree as const leaf iterator
+    const_iterator begin(unsigned char maxDepth=0) const {return cbegin(maxDepth);};
+    /// @return end of the tree as const leaf iterator
+    const const_iterator end() const {return cend();}; // TODO: RVE?
+
 
     /// @return beginning of the tree as leaf iterator
-    leaf_iterator begin_leafs(unsigned char maxDepth=0) const {return leaf_iterator(this, maxDepth);};
+    leaf_iterator begin_leafs(unsigned char maxDepth=0) {return leaf_iterator(this, maxDepth);};
     /// @return end of the tree as leaf iterator
-    const leaf_iterator end_leafs() const {return leaf_iterator_end;}
+    const leaf_iterator end_leafs() {return leaf_iterator_end;}
+    /// @return beginning of the tree as const leaf iterator
+    const_leaf_iterator cbegin_leafs(unsigned char maxDepth=0) const {return const_leaf_iterator(this, maxDepth);};
+    /// @return end of the tree as const leaf iterator
+    const const_leaf_iterator cend_leafs() const {return const_leaf_iterator_end;}
+    /// @return beginning of the tree as const leaf iterator
+    const_leaf_iterator begin_leafs(unsigned char maxDepth=0) const {return cbegin_leafs(maxDepth);}
+    /// @return end of the tree as const leaf iterator
+    const const_leaf_iterator end_leafs() const {return cend_leafs();}
 
     /// @return beginning of the tree as leaf iterator in a bounding box
-    leaf_bbx_iterator begin_leafs_bbx(const OcTreeKey& min, const OcTreeKey& max, unsigned char maxDepth=0) const {
+    leaf_bbx_iterator begin_leafs_bbx(const OcTreeKey& min, const OcTreeKey& max, unsigned char maxDepth=0) {
       return leaf_bbx_iterator(this, min, max, maxDepth);
     }
     /// @return beginning of the tree as leaf iterator in a bounding box
-    leaf_bbx_iterator begin_leafs_bbx(const point3d& min, const point3d& max, unsigned char maxDepth=0) const {
+    leaf_bbx_iterator begin_leafs_bbx(const point3d& min, const point3d& max, unsigned char maxDepth=0) {
       return leaf_bbx_iterator(this, min, max, maxDepth);
     }
     /// @return end of the tree as leaf iterator in a bounding box
-    const leaf_bbx_iterator end_leafs_bbx() const {return leaf_iterator_bbx_end;}
+    const leaf_bbx_iterator end_leafs_bbx() {return leaf_iterator_bbx_end;}
+    /// @return beginning of the tree as const leaf iterator in a bounding box
+    const_leaf_bbx_iterator cbegin_leafs_bbx(const OcTreeKey& min, const OcTreeKey& max, unsigned char maxDepth=0) const {
+      return const_leaf_bbx_iterator(this, min, max, maxDepth);
+    }
+    /// @return beginning of the tree as const leaf iterator in a bounding box
+    const_leaf_bbx_iterator cbegin_leafs_bbx(const point3d& min, const point3d& max, unsigned char maxDepth=0) const {
+      return const_leaf_bbx_iterator(this, min, max, maxDepth);
+    }
+    /// @return end of the tree as const leaf iterator in a bounding box
+    const const_leaf_bbx_iterator cend_leafs_bbx() const {return const_leaf_iterator_bbx_end;}
+    /// @return beginning of the tree as const leaf iterator in a bounding box
+    const_leaf_bbx_iterator begin_leafs_bbx(const OcTreeKey& min, const OcTreeKey& max, unsigned char maxDepth=0) const {
+      return cbegin_leafs_bbx(min, max, maxDepth);
+    }
+    /// @return beginning of the tree as const leaf iterator in a bounding box
+    const_leaf_bbx_iterator begin_leafs_bbx(const point3d& min, const point3d& max, unsigned char maxDepth=0) const {
+      return cbegin_leafs_bbx(min, max, maxDepth);
+    }
+    /// @return end of the tree as const leaf iterator in a bounding box
+    const const_leaf_bbx_iterator end_leafs_bbx() const {return cend_leafs_bbx();}
 
     /// @return beginning of the tree as iterator to all nodes (incl. inner)
-    tree_iterator begin_tree(unsigned char maxDepth=0) const {return tree_iterator(this, maxDepth);}
+    tree_iterator begin_tree(unsigned char maxDepth=0) {return tree_iterator(this, maxDepth);}
     /// @return end of the tree as iterator to all nodes (incl. inner)
-    const tree_iterator end_tree() const {return tree_iterator_end;}
+    const tree_iterator end_tree() {return tree_iterator_end;}
+    /// @return beginning of the tree as const iterator to all nodes (incl. inner)
+    const_tree_iterator cbegin_tree(unsigned char maxDepth=0) const {return const_tree_iterator(this, maxDepth);}
+    /// @return end of the tree as const iterator to all nodes (incl. inner)
+    const const_tree_iterator cend_tree() const {return const_tree_iterator_end;}
+    /// @return beginning of the tree as const iterator to all nodes (incl. inner)
+    const_tree_iterator begin_tree(unsigned char maxDepth=0) const {return cbegin_tree(maxDepth);}
+    /// @return end of the tree as const iterator to all nodes (incl. inner)
+    const const_tree_iterator end_tree() const {return cend_tree();}
 
     //
     // Key / coordinate conversion functions
@@ -523,12 +572,38 @@ namespace octomap {
     std::vector<KeyRay> keyrays;
 
     const leaf_iterator leaf_iterator_end;
+    const const_leaf_iterator const_leaf_iterator_end;
     const leaf_bbx_iterator leaf_iterator_bbx_end;
+    const const_leaf_bbx_iterator const_leaf_iterator_bbx_end;
     const tree_iterator tree_iterator_end;
+    const const_tree_iterator const_tree_iterator_end;
 
 
   };
 
+  /// Comparison between an iterator_base and a const_iterator_base.
+  template <class NODE,class INTERFACE>
+  inline bool operator==(const typename OcTreeBaseImpl<NODE, INTERFACE>::iterator_base& lhs, const typename OcTreeBaseImpl<NODE, INTERFACE>::const_iterator_base& rhs) {
+    return (rhs == lhs);
+  }
+
+  /// Comparison between a tree_iterator and a const_tree_iterator.
+  template <class NODE,class INTERFACE>
+  inline bool operator==(const typename OcTreeBaseImpl<NODE, INTERFACE>::tree_iterator& lhs, const typename OcTreeBaseImpl<NODE, INTERFACE>::const_tree_iterator& rhs) {
+    return (rhs == lhs);
+  }
+
+  /// Comparison between a leaf_iterator and a const_leaf_iterator.
+  template <class NODE,class INTERFACE>
+  inline bool operator==(const typename OcTreeBaseImpl<NODE, INTERFACE>::leaf_iterator& lhs, const typename OcTreeBaseImpl<NODE, INTERFACE>::const_leaf_iterator& rhs) {
+    return (rhs == lhs);
+  }
+
+  /// Comparison between a leaf_bbx_iterator and a const_leaf_bbx_iterator.
+  template <class NODE,class INTERFACE>
+  inline bool operator==(const typename OcTreeBaseImpl<NODE, INTERFACE>::leaf_bbx_iterator& lhs, const typename OcTreeBaseImpl<NODE, INTERFACE>::const_leaf_bbx_iterator& rhs) {
+    return (rhs == lhs);
+  }
 }
 
 #include <octomap/OcTreeBaseImpl.hxx>
